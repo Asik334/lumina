@@ -1,6 +1,6 @@
-'use client'
+﻿'use client'
 // components/messages/NewChatModal.tsx
-// Компонент для создания нового чата
+// РљРѕРјРїРѕРЅРµРЅС‚ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ РЅРѕРІРѕРіРѕ С‡Р°С‚Р°
 
 import { useState } from 'react'
 import { X, Search, MessageCircle, Loader2 } from 'lucide-react'
@@ -50,7 +50,7 @@ export default function NewChatModal({ currentUserId, onClose }: NewChatModalPro
   const handleStartChat = async (targetUser: User) => {
     setStarting(targetUser.id)
 
-    // Проверяем существует ли уже чат между этими двумя пользователями
+    // РџСЂРѕРІРµСЂСЏРµРј СЃСѓС‰РµСЃС‚РІСѓРµС‚ Р»Рё СѓР¶Рµ С‡Р°С‚ РјРµР¶РґСѓ СЌС‚РёРјРё РґРІСѓРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏРјРё
     const { data: existingConversation } = await supabase
       .from('conversations')
       .select('id')
@@ -60,13 +60,13 @@ export default function NewChatModal({ currentUserId, onClose }: NewChatModalPro
       .single()
 
     if (existingConversation) {
-      // Чат уже есть — просто открываем его
+      // Р§Р°С‚ СѓР¶Рµ РµСЃС‚СЊ вЂ” РїСЂРѕСЃС‚Рѕ РѕС‚РєСЂС‹РІР°РµРј РµРіРѕ
       router.push(`/messages?chat=${existingConversation.id}`)
       onClose()
       return
     }
 
-    // Создаём новый чат
+    // РЎРѕР·РґР°С‘Рј РЅРѕРІС‹Р№ С‡Р°С‚
     const { data: newConversation, error } = await supabase
       .from('conversations')
       .insert({
@@ -79,8 +79,8 @@ export default function NewChatModal({ currentUserId, onClose }: NewChatModalPro
       .single()
 
     if (error) {
-      console.error('Ошибка создания чата:', error)
-      // Если таблицы conversations нет — пробуем через messages напрямую
+      console.error('РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ С‡Р°С‚Р°:', error)
+      // Р•СЃР»Рё С‚Р°Р±Р»РёС†С‹ conversations РЅРµС‚ вЂ” РїСЂРѕР±СѓРµРј С‡РµСЂРµР· messages РЅР°РїСЂСЏРјСѓСЋ
       router.push(`/messages?user=${targetUser.id}`)
       onClose()
       return
@@ -104,7 +104,7 @@ export default function NewChatModal({ currentUserId, onClose }: NewChatModalPro
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-neon-blue" />
-            <h2 className="font-semibold text-lg">Новое сообщение</h2>
+            <h2 className="font-semibold text-lg">РќРѕРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ</h2>
           </div>
           <button
             onClick={onClose}
@@ -120,7 +120,7 @@ export default function NewChatModal({ currentUserId, onClose }: NewChatModalPro
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Поиск пользователей..."
+              placeholder="РџРѕРёСЃРє РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№..."
               value={query}
               onChange={e => handleSearch(e.target.value)}
               autoFocus
@@ -137,11 +137,11 @@ export default function NewChatModal({ currentUserId, onClose }: NewChatModalPro
           {query.length < 2 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Search className="w-8 h-8 mb-2 opacity-30" />
-              <p className="text-sm">Введите имя пользователя</p>
+              <p className="text-sm">Р’РІРµРґРёС‚Рµ РёРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ</p>
             </div>
           ) : results.length === 0 && !loading ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <p className="text-sm">Пользователи не найдены</p>
+              <p className="text-sm">РџРѕР»СЊР·РѕРІР°С‚РµР»Рё РЅРµ РЅР°Р№РґРµРЅС‹</p>
             </div>
           ) : (
             <div className="divide-y divide-white/5">
@@ -173,3 +173,4 @@ export default function NewChatModal({ currentUserId, onClose }: NewChatModalPro
     </div>
   )
 }
+
