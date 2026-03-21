@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -31,7 +31,7 @@ export default function ProfileHeader({
   const [followersCount, setFollowersCount] = useState(profile.followers_count)
   const [followLoading, setFollowLoading] = useState(false)
   const [messageLoading, setMessageLoading] = useState(false)
-  const [showModal, setShowModal] = useState<'followers' | 'following' | null>(null)
+  const [showModal, setShowModal] = useState<'подписчики' | 'подписки' | null>(null)
 
   const handleFollow = async () => {
     if (followLoading) return
@@ -39,14 +39,14 @@ export default function ProfileHeader({
     const supabase = createClient()
 
     if (following) {
-      await supabase.from('followers')
+      await supabase.from('подписчики')
         .delete()
         .eq('follower_id', currentUserId)
         .eq('following_id', profile.id)
       setFollowing(false)
       setFollowersCount(c => c - 1)
     } else {
-      await supabase.from('followers')
+      await supabase.from('подписчики')
         .insert({ follower_id: currentUserId, following_id: profile.id })
       setFollowing(true)
       setFollowersCount(c => c + 1)
@@ -54,13 +54,13 @@ export default function ProfileHeader({
     setFollowLoading(false)
   }
 
-  // Кнопка "Написать" — создаёт или открывает беседу и переходит в чат
+  // РљРЅРѕРїРєР° "РќР°РїРёСЃР°С‚СЊ" вЂ” СЃРѕР·РґР°С‘С‚ РёР»Рё РѕС‚РєСЂС‹РІР°РµС‚ Р±РµСЃРµРґСѓ Рё РїРµСЂРµС…РѕРґРёС‚ РІ С‡Р°С‚
   const handleMessage = async () => {
     if (messageLoading) return
     setMessageLoading(true)
     const supabase = createClient()
 
-    // Проверяем есть ли уже беседа
+    // РџСЂРѕРІРµСЂСЏРµРј РµСЃС‚СЊ Р»Рё СѓР¶Рµ Р±РµСЃРµРґР°
     const { data: existing } = await supabase
       .from('conversations')
       .select('id')
@@ -71,7 +71,7 @@ export default function ProfileHeader({
       .maybeSingle()
 
     if (!existing) {
-      // Создаём новую беседу
+      // РЎРѕР·РґР°С‘Рј РЅРѕРІСѓСЋ Р±РµСЃРµРґСѓ
       await supabase
         .from('conversations')
         .insert({ participant_1: currentUserId, participant_2: profile.id })
@@ -109,7 +109,7 @@ export default function ProfileHeader({
                     href="/profile/edit"
                     className="px-4 py-1.5 text-sm font-semibold glass rounded-lg hover:bg-white/10 transition-colors border border-white/10"
                   >
-                    Редактировать профиль
+                    Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РїСЂРѕС„РёР»СЊ
                   </Link>
                   <button className="p-1.5 glass rounded-lg hover:bg-white/10 transition-colors border border-white/10">
                     <Settings className="w-4 h-4" />
@@ -128,10 +128,10 @@ export default function ProfileHeader({
                     }`}
                   >
                     {followLoading && <Loader2 className="w-3 h-3 animate-spin" />}
-                    {following ? 'Подписан' : 'Подписаться'}
+                    {following ? 'РџРѕРґРїРёСЃР°РЅ' : 'РџРѕРґРїРёСЃР°С‚СЊСЃСЏ'}
                   </motion.button>
 
-                  {/* Кнопка Написать — открывает чат */}
+                  {/* РљРЅРѕРїРєР° РќР°РїРёСЃР°С‚СЊ вЂ” РѕС‚РєСЂС‹РІР°РµС‚ С‡Р°С‚ */}
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={handleMessage}
@@ -142,7 +142,7 @@ export default function ProfileHeader({
                       ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       : <MessageCircle className="w-3.5 h-3.5" />
                     }
-                    Написать
+                    РќР°РїРёСЃР°С‚СЊ
                   </motion.button>
                 </>
               )}
@@ -152,21 +152,21 @@ export default function ProfileHeader({
             <div className="flex gap-6 mb-4">
               <div className="cursor-default">
                 <span className="font-bold text-sm">{formatCount(postsCount)}</span>
-                <span className="text-muted-foreground text-sm ml-1">публикаций</span>
+                <span className="text-muted-foreground text-sm ml-1">РїСѓР±Р»РёРєР°С†РёР№</span>
               </div>
               <button
-                onClick={() => setShowModal('followers')}
+                onClick={() => setShowModal('подписчики')}
                 className="hover:opacity-70 transition-opacity"
               >
                 <span className="font-bold text-sm">{formatCount(followersCount)}</span>
-                <span className="text-muted-foreground text-sm ml-1">подписчиков</span>
+                <span className="text-muted-foreground text-sm ml-1">РїРѕРґРїРёСЃС‡РёРєРѕРІ</span>
               </button>
               <button
-                onClick={() => setShowModal('following')}
+                onClick={() => setShowModal('подписки')}
                 className="hover:opacity-70 transition-opacity"
               >
                 <span className="font-bold text-sm">{formatCount(profile.following_count)}</span>
-                <span className="text-muted-foreground text-sm ml-1">подписок</span>
+                <span className="text-muted-foreground text-sm ml-1">РїРѕРґРїРёСЃРѕРє</span>
               </button>
             </div>
 
@@ -196,9 +196,9 @@ export default function ProfileHeader({
         {/* Tabs */}
         <div className="flex border-t border-white/10">
           {[
-            { icon: Grid, label: 'Публикации' },
-            { icon: Film, label: 'Видео' },
-            ...(isOwnProfile ? [{ icon: Bookmark, label: 'Сохранённые' }] : []),
+            { icon: Grid, label: 'РџСѓР±Р»РёРєР°С†РёРё' },
+            { icon: Film, label: 'Р’РёРґРµРѕ' },
+            ...(isOwnProfile ? [{ icon: Bookmark, label: 'РЎРѕС…СЂР°РЅС‘РЅРЅС‹Рµ' }] : []),
           ].map(({ icon: Icon, label }) => (
             <button
               key={label}
@@ -216,10 +216,11 @@ export default function ProfileHeader({
         <FollowersModal
           userId={profile.id}
           type={showModal}
-          count={showModal === 'followers' ? followersCount : profile.following_count}
+          count={showModal === 'подписчики' ? followersCount : profile.following_count}
           onClose={() => setShowModal(null)}
         />
       )}
     </>
   )
 }
+
