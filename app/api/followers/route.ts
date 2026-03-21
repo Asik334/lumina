@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
@@ -16,11 +16,18 @@ export async function POST(request: NextRequest) {
     .insert({ follower_id: user.id, following_id: followingId })
 
   if (error) {
-    if (error.code === '23505') {
-      return NextResponse.json({ error: 'Already following' }, { status: 409 })
-    }
+    if (error.code === '23505') return NextResponse.json({ error: 'Already following' }, { status: 409 })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  // ✅ Уведомление о подписке
+  await supabase.from('notifications').insert({
+    user_id: followingId,
+    actor_id: user.id,
+    type: 'follow',
+    post_id: null,
+    comment_id: null,
+  })
 
   return NextResponse.json({ success: true })
 }

@@ -23,12 +23,12 @@ export default async function NotificationsPage() {
 
   const getNotifConfig = (type: string) => {
     switch (type) {
-      case 'like':    return { text: 'оценил(а) вашу публикацию',         icon: Heart,          color: 'text-red-400' }
-      case 'comment': return { text: 'прокомментировал(а) публикацию',    icon: MessageCircle,  color: 'text-blue-400' }
-      case 'follow':  return { text: 'подписался(ась) на вас',            icon: UserPlus,       color: 'text-green-400' }
-      case 'mention': return { text: 'упомянул(а) вас в комментарии',     icon: AtSign,         color: 'text-purple-400' }
-      case 'reply':   return { text: 'ответил(а) на ваш комментарий',     icon: MessageCircle,  color: 'text-cyan-400' }
-      default:        return { text: 'взаимодействовал(а) с вами',        icon: Bell,           color: 'text-gray-400' }
+      case 'like':    return { text: 'оценил(а) вашу публикацию',      icon: Heart,         color: 'text-red-400' }
+      case 'comment': return { text: 'прокомментировал(а) публикацию', icon: MessageCircle, color: 'text-blue-400' }
+      case 'follow':  return { text: 'подписался(ась) на вас',         icon: UserPlus,      color: 'text-green-400' }
+      case 'mention': return { text: 'упомянул(а) вас',                icon: AtSign,        color: 'text-purple-400' }
+      case 'reply':   return { text: 'ответил(а) на комментарий',      icon: MessageCircle, color: 'text-cyan-400' }
+      default:        return { text: 'взаимодействовал(а) с вами',     icon: Bell,          color: 'text-gray-400' }
     }
   }
 
@@ -49,7 +49,7 @@ export default async function NotificationsPage() {
         <div className="text-center py-20">
           <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
           <p className="font-semibold mb-1">Уведомлений пока нет</p>
-          <p className="text-sm text-muted-foreground">Когда кто-то оценит ваши публикации — вы увидите это здесь.</p>
+          <p className="text-sm text-muted-foreground">Когда кто-то лайкнет или прокомментирует — вы увидите здесь.</p>
         </div>
       ) : (
         <div className="space-y-1">
