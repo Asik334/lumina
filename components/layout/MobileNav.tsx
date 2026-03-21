@@ -16,54 +16,60 @@ export default function MobileNav({ user }: MobileNavProps) {
   const pathname = usePathname()
   const [showCreatePost, setShowCreatePost] = useState(false)
 
-  const navItems = [
-    { href: '/feed', icon: Home, label: 'Главная' },
-    { href: '/search', icon: Search, label: 'Поиск' },
-    { href: '/notifications', icon: Heart, label: 'Активность' },
-  ]
-
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-white/5 z-40 safe-area-pb">
-        <div className="flex items-center justify-around px-2 py-3">
-          {navItems.slice(0, 2).map(({ href, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`p-2 rounded-xl transition-colors ${
-                pathname === href ? 'text-foreground' : 'text-muted-foreground'
-              }`}
-            >
-              <Icon className={`w-6 h-6 ${pathname === href ? 'fill-current' : ''}`} />
-            </Link>
-          ))}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40"
+        style={{
+          background: 'rgba(10,10,20,0.92)',
+          backdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
+        <div className="flex items-center justify-around px-1 py-2">
+          <Link
+            href="/feed"
+            className={`flex flex-col items-center p-2 rounded-xl transition-all ${pathname === '/feed' ? 'text-white' : 'text-white/40'}`}
+          >
+            <Home className={`w-6 h-6 ${pathname === '/feed' ? 'fill-white' : ''}`} />
+          </Link>
 
-          {/* Create */}
+          <Link
+            href="/search"
+            className={`flex flex-col items-center p-2 rounded-xl transition-all ${pathname === '/search' ? 'text-white' : 'text-white/40'}`}
+          >
+            <Search className="w-6 h-6" />
+          </Link>
+
           <button
             onClick={() => setShowCreatePost(true)}
-            className="p-2 rounded-xl text-muted-foreground"
+            className="flex items-center justify-center w-12 h-12 rounded-2xl text-white shadow-lg transition-transform active:scale-95"
+            style={{ background: 'linear-gradient(135deg, #a855f7, #ec4899)' }}
           >
             <PlusSquare className="w-6 h-6" />
           </button>
 
-          {navItems.slice(2).map(({ href, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`p-2 rounded-xl transition-colors ${
-                pathname === href ? 'text-foreground' : 'text-muted-foreground'
-              }`}
-            >
-              <Icon className={`w-6 h-6 ${pathname === href ? 'fill-current' : ''}`} />
-            </Link>
-          ))}
+          <Link
+            href="/notifications"
+            className={`flex flex-col items-center p-2 rounded-xl transition-all ${pathname === '/notifications' ? 'text-white' : 'text-white/40'}`}
+          >
+            <Heart className={`w-6 h-6 ${pathname === '/notifications' ? 'fill-white' : ''}`} />
+          </Link>
 
-          {user && (
+          {user ? (
             <Link
               href={`/profile/${user.username}`}
-              className="p-1 rounded-xl"
+              className={`p-1 rounded-xl transition-all ${pathname.startsWith('/profile') ? 'ring-2 ring-purple-500 rounded-full' : 'opacity-50'}`}
             >
               <UserAvatar user={user} size="sm" />
+            </Link>
+          ) : (
+            <Link
+              href="/feed"
+              className="p-2 rounded-xl text-white/40"
+            >
+              <User className="w-6 h-6" />
             </Link>
           )}
         </div>

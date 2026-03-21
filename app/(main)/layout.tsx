@@ -24,10 +24,10 @@ export default async function MainLayout({
   return (
     <div className="flex min-h-screen">
       {/* Desktop Sidebar */}
-      <Sidebar user={profile} />
+      <Sidebar user={profile} isAdmin={profile?.is_admin} />
 
       {/* Main Content */}
-      <main className="flex-1 ml-0 md:ml-64 xl:ml-72 pb-20 md:pb-0 min-h-screen">
+      <main className="flex-1 ml-0 md:ml-64 xl:ml-72 pb-24 md:pb-0 min-h-screen overflow-x-hidden">
         {children}
       </main>
 

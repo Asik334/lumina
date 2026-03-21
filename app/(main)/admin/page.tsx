@@ -2,31 +2,36 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AdminClient from './AdminClient'
 
-// Список admin email-ов — замените на свой
-const ADMIN_EMAILS = ['admin@lumina.app', 'asik334@gmail.com']
-
 export default async function AdminPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || !ADMIN_EMAILS.includes(user.email || '')) {
-    redirect('/feed')
-  }
+  if (!user) redirect('/login')
 
-  // Статистика
+  // Проверяем права администратора
+  const { data: profile } = await supabase
+    .from('users').select('*').eq('id', user.id).single()
+
+  // Доступ: поле is_admin = true в таблице users
+  // ИЛИ добавьте свой email ниже:
+  const ADMIN_EMAILS = ['asik334@gmail.com']
+  const isAdmin = profile?.is_admin === true || ADMIN_EMAILS.includes(user.email || '')
+
+  if (!isAdmin) redirect('/feed')
+
   const [
     { count: usersCount },
     { count: postsCount },
     { count: notifCount },
     { data: recentUsers },
     { data: recentPosts },
-    { data: reportedPosts },
+    { data: topPosts },
   ] = await Promise.all([
     supabase.from('users').select('*', { count: 'exact', head: true }),
     supabase.from('posts').select('*', { count: 'exact', head: true }),
     supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('is_read', false),
-    supabase.from('users').select('*').order('created_at', { ascending: false }).limit(10),
-    supabase.from('posts').select('*, user:users(username, avatar_url)').order('created_at', { ascending: false }).limit(10),
+    supabase.from('users').select('*').order('created_at', { ascending: false }).limit(20),
+    supabase.from('posts').select('*, user:users(username, avatar_url, id)').order('created_at', { ascending: false }).limit(20),
     supabase.from('posts').select('*, user:users(username, avatar_url)').order('likes_count', { ascending: false }).limit(5),
   ])
 
@@ -35,7 +40,7 @@ export default async function AdminPage() {
       stats={{ usersCount: usersCount || 0, postsCount: postsCount || 0, notifCount: notifCount || 0 }}
       recentUsers={recentUsers || []}
       recentPosts={recentPosts || []}
-      topPosts={reportedPosts || []}
+      topPosts={topPosts || []}
     />
   )
 }
