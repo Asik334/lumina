@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AdminClient from './AdminClient'
 
@@ -8,13 +8,10 @@ export default async function AdminPage() {
 
   if (!user) redirect('/login')
 
-  // Проверяем права администратора
   const { data: profile } = await supabase
     .from('users').select('*').eq('id', user.id).single()
 
-  // Доступ: поле is_admin = true в таблице users
-  // ИЛИ добавьте свой email ниже:
-  const ADMIN_EMAILS = ['asik334@gmail.com']
+  const ADMIN_EMAILS = ['asikesenalin0@gmail.com', 'asik334@gmail.com']
   const isAdmin = profile?.is_admin === true || ADMIN_EMAILS.includes(user.email || '')
 
   if (!isAdmin) redirect('/feed')

@@ -1,154 +1,203 @@
-'use client'
-
+﻿'use client'
 import { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Loader2, ArrowLeft, MessageCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import type { Message, Conversation } from '@/types'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { formatTimeAgo } from '@/lib/utils'
+import { Send, MessageCircle, PenSquare } from 'lucide-react'
+import NewChatModal from './NewChatModal'
 
 interface MessagesClientProps {
+  currentUser: any
   conversations: any[]
-  currentUserId: string
 }
 
-export default function MessagesClient({ conversations, currentUserId }: MessagesClientProps) {
-  const [activeConv, setActiveConv] = useState<any>(null)
-  const [messages, setMessages] = useState<Message[]>([])
+export default function MessagesClient({ currentUser, conversations: initialConversations }: MessagesClientProps) {
+  const [conversations, setConversations] = useState(initialConversations)
+  const [selectedConv, setSelectedConv] = useState<any>(null)
+  const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')
-  const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
+  const [showNewChat, setShowNewChat] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!activeConv) return
-    loadMessages(activeConv.id)
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`conv:${activeConv.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${activeConv.id}` },
-        async (payload) => {
-          const { data: msgWithUser } = await supabase
-            .from('messages').select('*, sender:users!messages_sender_id_fkey(*)').eq('id', payload.new.id).single()
-          if (msgWithUser) setMessages(prev => [...prev, msgWithUser])
-        }).subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [activeConv?.id])
+  const supabase = createClient()
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const loadMessages = async (convId: string) => {
-    setLoading(true)
-    const supabase = createClient()
-    const { data } = await supabase.from('messages')
-      .select('*, sender:users!messages_sender_id_fkey(*)')
-      .eq('conversation_id', convId).order('created_at', { ascending: true })
-    setMessages(data || [])
-    setLoading(false)
-  }
+  useEffect(() => {
+    if (!selectedConv) return
+    const loadMessages = async () => {
+      const { data } = await supabase
+        .from('messages')
+        .select('*, sender:users!sender_id(id, username, avatar_url)')
+        .eq('conversation_id', selectedConv.id)
+        .order('created_at', { ascending: true })
+      setMessages(data || [])
+    }
+    loadMessages()
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newMessage.trim() || !activeConv || sending) return
+    const channel = supabase
+      .channel(`messages:${selectedConv.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${selectedConv.id}`,
+      }, async (payload) => {
+        const { data: msg } = await supabase
+          .from('messages')
+          .select('*, sender:users!sender_id(id, username, avatar_url)')
+          .eq('id', payload.new.id)
+          .single()
+        if (msg) setMessages(prev => [...prev, msg])
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [selectedConv])
+
+  const handleSend = async () => {
+    if (!newMessage.trim() || !selectedConv || sending) return
     setSending(true)
-    const supabase = createClient()
     await supabase.from('messages').insert({
-      conversation_id: activeConv.id, sender_id: currentUserId,
-      receiver_id: activeConv.other_user?.id, content: newMessage.trim(),
+      conversation_id: selectedConv.id,
+      sender_id: currentUser.id,
+      content: newMessage.trim(),
     })
-    await supabase.from('conversations')
-      .update({ last_message: newMessage.trim(), last_message_at: new Date().toISOString() })
-      .eq('id', activeConv.id)
+    await supabase
+      .from('conversations')
+      .update({ last_message_at: new Date().toISOString(), last_message: newMessage.trim() })
+      .eq('id', selectedConv.id)
     setNewMessage('')
     setSending(false)
   }
 
+  // Исправлено: используем participant_1/participant_2 как в базе данных
+  const getOtherUser = (conv: any) => {
+    return conv.other_user || 
+      (conv.participant_1 === currentUser.id ? conv.participant_2_user : conv.participant_1_user)
+  }
+
   return (
-    <div className="flex h-[100dvh] md:h-screen overflow-hidden">
-      <div className={`${activeConv ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r border-white/5 flex-col`}>
-        <div className="p-4 border-b border-white/5">
-          <h1 className="text-lg font-bold">Сообщения</h1>
+    <div className="flex h-[calc(100vh-4rem)] max-w-5xl mx-auto border border-white/10 rounded-2xl overflow-hidden glass">
+      <div className="w-80 border-r border-white/10 flex flex-col flex-shrink-0">
+        <div className="p-4 border-b border-white/10 flex items-center justify-between">
+          <h2 className="font-semibold text-lg">Сообщения</h2>
+          <button
+            onClick={() => setShowNewChat(true)}
+            className="p-2 rounded-xl hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+            title="Новое сообщение"
+          >
+            <PenSquare className="w-5 h-5" />
+          </button>
         </div>
+
         <div className="flex-1 overflow-y-auto">
           {conversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <MessageCircle className="w-12 h-12 text-muted-foreground mb-4 opacity-30" />
-              <p className="text-muted-foreground text-sm">Нет диалогов</p>
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground p-6 text-center">
+              <MessageCircle className="w-10 h-10 opacity-20" />
+              <p className="text-sm">Нет сообщений</p>
+              <button onClick={() => setShowNewChat(true)} className="text-xs text-blue-400 hover:underline">
+                Написать кому-нибудь
+              </button>
             </div>
           ) : (
-            conversations.map(conv => (
-              <button key={conv.id} onClick={() => setActiveConv(conv)}
-                className={`w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors text-left ${activeConv?.id === conv.id ? 'bg-white/5' : ''}`}>
-                <UserAvatar user={conv.other_user} size="md" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{conv.other_user?.username}</p>
-                  {conv.last_message && <p className="text-xs text-muted-foreground truncate">{conv.last_message}</p>}
-                </div>
-                {conv.last_message_at && <span className="text-xs text-muted-foreground flex-shrink-0">{formatTimeAgo(conv.last_message_at)}</span>}
-              </button>
-            ))
+            conversations.map(conv => {
+              const other = getOtherUser(conv)
+              if (!other) return null
+              return (
+                <button
+                  key={conv.id}
+                  onClick={() => setSelectedConv(conv)}
+                  className={`w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors text-left ${selectedConv?.id === conv.id ? 'bg-white/10' : ''}`}
+                >
+                  <UserAvatar user={other} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">@{other.username}</p>
+                    {conv.last_message && (
+                      <p className="text-xs text-muted-foreground truncate">{conv.last_message}</p>
+                    )}
+                  </div>
+                  {conv.last_message_at && (
+                    <span className="text-xs text-muted-foreground flex-shrink-0">
+                      {formatTimeAgo(conv.last_message_at)}
+                    </span>
+                  )}
+                </button>
+              )
+            })
           )}
         </div>
       </div>
 
-      <div className={`${!activeConv ? 'hidden md:flex' : 'flex'} flex-1 flex-col`}>
-        {activeConv ? (
+      <div className="flex-1 flex flex-col">
+        {selectedConv ? (
           <>
-            <div className="flex items-center gap-3 p-4 border-b border-white/5">
-              <button onClick={() => setActiveConv(null)} className="md:hidden text-muted-foreground hover:text-foreground mr-1 p-1">
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <UserAvatar user={activeConv.other_user} size="sm" />
-              <div>
-                <p className="font-semibold text-sm">{activeConv.other_user?.username}</p>
-                <p className="text-xs text-muted-foreground">{activeConv.other_user?.full_name}</p>
-              </div>
+            <div className="p-4 border-b border-white/10 flex items-center gap-3">
+              <UserAvatar user={getOtherUser(selectedConv)} size="sm" />
+              <p className="font-semibold">@{getOtherUser(selectedConv)?.username}</p>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {loading ? (
-                <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-              ) : (
-                <AnimatePresence initial={false}>
-                  {messages.map((msg) => {
-                    const isMine = msg.sender_id === currentUserId
-                    return (
-                      <motion.div key={msg.id} initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.2 }}
-                        className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                        {!isMine && <UserAvatar user={msg.sender as any} size="xs" className="mr-2 mt-auto" />}
-                        <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isMine ? 'bg-neon-gradient text-white rounded-br-sm' : 'glass border border-white/10 rounded-bl-sm'}`}>
-                          {msg.content}
-                        </div>
-                      </motion.div>
-                    )
-                  })}
-                </AnimatePresence>
-              )}
+              {messages.map(msg => {
+                const isMe = msg.sender_id === currentUser.id
+                return (
+                  <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-xs px-4 py-2.5 rounded-2xl text-sm ${isMe ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`}>
+                      <p>{msg.content}</p>
+                      <p className={`text-xs mt-1 ${isMe ? 'text-white/60' : 'text-muted-foreground'}`}>
+                        {formatTimeAgo(msg.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
               <div ref={messagesEndRef} />
             </div>
 
-            <form onSubmit={sendMessage} className="p-3 border-t border-white/5 flex gap-2 items-center">
-              <input type="text" placeholder="Сообщение..." value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                className="flex-1 glass border border-white/10 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:border-neon-purple/50 transition-all placeholder:text-muted-foreground" />
-              <button type="submit" disabled={!newMessage.trim() || sending}
-                className="w-10 h-10 rounded-full bg-neon-gradient flex items-center justify-center disabled:opacity-50 active:scale-95">
-                {sending ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Send className="w-4 h-4 text-white" />}
+            <div className="p-4 border-t border-white/10 flex items-center gap-3">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={e => setNewMessage(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                placeholder="Написать сообщение..."
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-white/30 transition-all"
+              />
+              <button
+                onClick={handleSend}
+                disabled={!newMessage.trim() || sending}
+                className="p-2.5 rounded-xl bg-blue-600 text-white hover:opacity-90 disabled:opacity-40 transition-all"
+              >
+                <Send className="w-4 h-4" />
               </button>
-            </form>
+            </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <MessageCircle className="w-16 h-16 text-muted-foreground mb-4 opacity-20" />
-            <h2 className="text-xl font-semibold mb-2">Ваши сообщения</h2>
-            <p className="text-muted-foreground text-sm">Выберите диалог для общения</p>
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 text-muted-foreground">
+            <MessageCircle className="w-16 h-16 opacity-10" />
+            <div className="text-center">
+              <p className="font-semibold text-foreground">Ваши сообщения</p>
+              <p className="text-sm mt-1">Выберите беседу или начните новую</p>
+            </div>
+            <button
+              onClick={() => setShowNewChat(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              <PenSquare className="w-4 h-4" />
+              Новое сообщение
+            </button>
           </div>
         )}
       </div>
+
+      {showNewChat && (
+        <NewChatModal
+          currentUserId={currentUser.id}
+          onClose={() => setShowNewChat(false)}
+        />
+      )}
     </div>
   )
 }

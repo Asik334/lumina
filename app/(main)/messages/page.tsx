@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import MessagesClient from '@/components/messages/MessagesClient'
 
@@ -6,6 +6,9 @@ export default async function MessagesPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { data: profile } = await supabase
+    .from('users').select('*').eq('id', user.id).single()
 
   const { data: conversations } = await supabase
     .from('conversations')
@@ -21,7 +24,7 @@ export default async function MessagesPage() {
   return (
     <MessagesClient
       conversations={formattedConversations}
-      currentUserId={user.id}
+      currentUser={profile || { id: user.id, username: '', avatar_url: null }}
     />
   )
 }
