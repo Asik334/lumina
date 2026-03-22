@@ -78,6 +78,7 @@ export default function MessagesClient({ currentUser, conversations: initialConv
       .insert({
         conversation_id: selectedConv.id,
         sender_id: currentUser.id,
+        receiver_id: getOtherUser(selectedConv)?.id,
         content: text,
       })
       .select('*')
@@ -203,4 +204,5 @@ export default function MessagesClient({ currentUser, conversations: initialConv
     </div>
   )
 }
+
 
