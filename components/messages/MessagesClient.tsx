@@ -27,6 +27,24 @@ export default function MessagesClient({ currentUser, conversations: initialConv
   const supabase = createClient()
   const searchParams = useSearchParams()
 
+  // Фикс высоты при открытии клавиатуры на Android/iOS
+  useEffect(() => {
+    const root = document.getElementById("mobile-chat-root")
+    if (!root) return
+    const setHeight = () => {
+      const h = window.visualViewport ? window.visualViewport.height : window.innerHeight
+      root.style.height = h + "px"
+      root.style.minHeight = h + "px"
+    }
+    setHeight()
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", setHeight)
+    window.addEventListener("resize", setHeight)
+    return () => {
+      if (window.visualViewport) window.visualViewport.removeEventListener("resize", setHeight)
+      window.removeEventListener("resize", setHeight)
+    }
+  }, [])
+
   useEffect(() => {
     const chatId = searchParams.get('chat')
     if (chatId && conversations.length > 0) {
@@ -156,7 +174,7 @@ export default function MessagesClient({ currentUser, conversations: initialConv
       </div>
 
       {/* ─── МОБИЛЬНЫЙ: один экран ─── */}
-      <div className="md:hidden flex flex-col h-[100dvh]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="md:hidden flex flex-col" id="mobile-chat-root">
         {mobileView === 'list' ? (
           // Список
           <div className="flex flex-col flex-1 overflow-hidden">
@@ -300,14 +318,14 @@ function ChatArea({ messages, currentUser, otherUser, newMessage, sending, input
       {/* Поле ввода */}
       <div
         className="flex items-center gap-2 px-3 py-3 border-t border-white/10 glass flex-shrink-0"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}
       >
         <input
           ref={inputRef}
           type="text"
           value={newMessage}
           onChange={e => onNewMessage(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && onSend()}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && onSend()} onFocus={() => setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 400)}
           placeholder="Сообщение..."
           className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-white/30 transition-all"
           style={{ fontSize: 16 }}
