@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { formatTimeAgo } from '@/lib/utils'
 import { Send, MessageCircle, PenSquare } from 'lucide-react'
 import NewChatModal from './NewChatModal'
+import UserAvatar from '@/components/ui/UserAvatar'
 import { useSearchParams } from 'next/navigation'
 
 interface MessagesClientProps {
@@ -200,6 +201,8 @@ export default function MessagesClient({ currentUser, conversations: initialConv
     </div>
   )
 }
+
+
 
 
 
