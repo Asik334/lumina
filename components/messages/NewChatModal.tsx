@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { X, Search, MessageCircle, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@/types'
-import { useRouter } from 'next/navigation'
 
 interface Props { currentUserId: string; onClose: () => void }
 
@@ -13,7 +12,6 @@ export default function NewChatModal({ currentUserId, onClose }: Props) {
   const [loading, setLoading] = useState(false)
   const [starting, setStarting] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
   const supabase = createClient()
 
   const handleSearch = async (value: string) => {
@@ -32,7 +30,6 @@ export default function NewChatModal({ currentUserId, onClose }: Props) {
     setStarting(targetUser.id)
     setError(null)
 
-    // Ищем существующий чат
     const { data: existing } = await supabase
       .from('conversations')
       .select('id')
@@ -40,12 +37,10 @@ export default function NewChatModal({ currentUserId, onClose }: Props) {
       .maybeSingle()
 
     if (existing?.id) {
-      router.push(`/messages?chat=${existing.id}`)
-      onClose()
+      window.location.href = '/messages?chat=' + existing.id
       return
     }
 
-    // Создаём новый чат
     const { data: newConv, error: insertError } = await supabase
       .from('conversations')
       .insert({
@@ -62,9 +57,7 @@ export default function NewChatModal({ currentUserId, onClose }: Props) {
       return
     }
 
-    router.push(`/messages?chat=${newConv.id}`)
-    router.refresh()
-    onClose()
+    window.location.href = '/messages?chat=' + newConv.id
   }
 
   return (
@@ -80,7 +73,6 @@ export default function NewChatModal({ currentUserId, onClose }: Props) {
             <X className="w-5 h-5" />
           </button>
         </div>
-
         <div className="p-4 border-b border-white/10">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -91,7 +83,6 @@ export default function NewChatModal({ currentUserId, onClose }: Props) {
           </div>
           {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
         </div>
-
         <div className="max-h-72 overflow-y-auto">
           {query.length < 2 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
