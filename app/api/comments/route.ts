@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendPush } from '@/lib/push'
 
 export async function GET(request: NextRequest) {
   const supabase = createClient()
@@ -42,14 +43,12 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Get actor avatar
   const { data: actor } = await supabase
     .from('users')
     .select('avatar_url, username')
     .eq('id', user.id)
     .single()
 
-  // Send notification to post owner
   const { data: post } = await supabase
     .from('posts')
     .select('user_id')
@@ -65,18 +64,12 @@ export async function POST(request: NextRequest) {
       comment_id: comment.id,
     })
 
-    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        targetUserId: post.user_id,
-        title: '💬 Новый комментарий',
-        body: `${actor?.username || 'Кто-то'} прокомментировал(а) вашу публикацию`,
-        url: '/notifications',
-        type: 'comment',
-        icon: actor?.avatar_url || '/icons/icon-192x192.png',
-      }),
-    })
+    await sendPush(
+      post.user_id,
+      '💬 Новый комментарий',
+      `${actor?.username || 'Кто-то'} прокомментировал(а) вашу публикацию`,
+      actor?.avatar_url
+    )
   }
 
   return NextResponse.json({ comment })

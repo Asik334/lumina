@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendPush } from '@/lib/push'
 
 export async function POST(request: NextRequest) {
   const supabase = createClient()
@@ -20,14 +21,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Get actor avatar
   const { data: actor } = await supabase
     .from('users')
     .select('avatar_url, username')
     .eq('id', user.id)
     .single()
 
-  // Уведомление о подписке
   await supabase.from('notifications').insert({
     user_id: followingId,
     actor_id: user.id,
@@ -36,18 +35,12 @@ export async function POST(request: NextRequest) {
     comment_id: null,
   })
 
-  await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      targetUserId: followingId,
-      title: '👤 Новый подписчик',
-      body: `${actor?.username || 'Кто-то'} подписался(ась) на вас`,
-      url: '/notifications',
-      type: 'follow',
-      icon: actor?.avatar_url || '/icons/icon-192x192.png',
-    }),
-  })
+  await sendPush(
+    followingId,
+    '👤 Новый подписчик',
+    `${actor?.username || 'Кто-то'} подписался(ась) на вас`,
+    actor?.avatar_url
+  )
 
   return NextResponse.json({ success: true })
 }
