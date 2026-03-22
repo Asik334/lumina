@@ -1,24 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export async function GET(request: NextRequest) {
+  const supabase = createClient()
+  const { searchParams } = new URL(request.url)
+  const postId = searchParams.get('postId')
+  if (!postId) return NextResponse.json({ error: 'postId required' }, { status: 400 })
+
+  const { data, error } = await supabase
+    .from('comments')
+    .select('*, user:users(*)')
+    .eq('post_id', postId)
+    .is('parent_id', null)
+    .order('created_at', { ascending: true })
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ comments: data })
+}
+
 export async function POST(request: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { followingId } = await request.json()
-  if (!followingId) return NextResponse.json({ error: 'followingId required' }, { status: 400 })
-  if (followingId === user.id) return NextResponse.json({ error: 'Cannot follow yourself' }, { status: 400 })
-
-  const { error } = await supabase
-    .from('followers')
-    .insert({ follower_id: user.id, following_id: followingId })
-
-  if (error) {
-    if (error.code === '23505') return NextResponse.json({ error: 'Already following' }, { status: 409 })
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  const { postId, content, parentId } = await request.json()
+  if (!postId || !content?.trim()) {
+    return NextResponse.json({ error: 'postId and content required' }, { status: 400 })
   }
+
+  const { data: comment, error } = await supabase
+    .from('comments')
+    .insert({
+      user_id: user.id,
+      post_id: postId,
+      content: content.trim(),
+      parent_id: parentId || null,
+    })
+    .select('*, user:users(*)')
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Get actor avatar
   const { data: actor } = await supabase
@@ -27,68 +49,60 @@ export async function POST(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  // Уведомление о подписке
-  await supabase.from('notifications').insert({
-    user_id: followingId,
-    actor_id: user.id,
-    type: 'follow',
-    post_id: null,
-    comment_id: null,
-  })
+  // Send notification to post owner
+  const { data: post } = await supabase
+    .from('posts')
+    .select('user_id')
+    .eq('id', postId)
+    .single()
 
-  await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      targetUserId: followingId,
-      title: '👤 Новый подписчик',
-      body: `${actor?.username || 'Кто-то'} подписался(ась) на вас`,
-      url: '/notifications',
-      type: 'follow',
-      icon: actor?.avatar_url || '/icons/icon-192x192.png',
-    }),
-  })
+  if (post && post.user_id !== user.id) {
+    await supabase.from('notifications').insert({
+      user_id: post.user_id,
+      actor_id: user.id,
+      type: parentId ? 'reply' : 'comment',
+      post_id: postId,
+      comment_id: comment.id,
+    })
 
-  return NextResponse.json({ success: true })
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetUserId: post.user_id,
+        title: '💬 Новый комментарий',
+        body: `${actor?.username || 'Кто-то'} прокомментировал(а) вашу публикацию`,
+        url: '/notifications',
+        type: 'comment',
+        icon: actor?.avatar_url || '/icons/icon-192x192.png',
+      }),
+    })
+  }
+
+  return NextResponse.json({ comment })
 }
 
 export async function DELETE(request: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
-  const followingId = searchParams.get('followingId')
+  const commentId = searchParams.get('id')
+  if (!commentId) return NextResponse.json({ error: 'comment id required' }, { status: 400 })
 
-  if (!followingId) return NextResponse.json({ error: 'followingId required' }, { status: 400 })
+  const { data: comment } = await supabase
+    .from('comments')
+    .select('user_id')
+    .eq('id', commentId)
+    .single()
 
-  const { error } = await supabase
-    .from('followers')
-    .delete()
-    .eq('follower_id', user.id)
-    .eq('following_id', followingId)
+  if (!comment || comment.user_id !== user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
+  const { error } = await supabase.from('comments').delete().eq('id', commentId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ success: true })
-}
-
-export async function GET(request: NextRequest) {
-  const supabase = createClient()
-  const { searchParams } = new URL(request.url)
-  const userId = searchParams.get('userId')
-  const type = searchParams.get('type') || 'followers'
-
-  if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
-
-  const query = type === 'followers'
-    ? supabase.from('followers').select('follower:users!followers_follower_id_fkey(*)').eq('following_id', userId)
-    : supabase.from('followers').select('following:users!followers_following_id_fkey(*)').eq('follower_id', userId)
-
-  const { data, error } = await query
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  return NextResponse.json({ data })
 }
