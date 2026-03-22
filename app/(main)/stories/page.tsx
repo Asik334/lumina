@@ -4,7 +4,7 @@ import UserAvatar from '@/components/ui/UserAvatar'
 import { formatTimeAgo } from '@/lib/utils'
 import CreateStoryButton from '@/components/stories/CreateStoryButton'
 
-export default async function StoriesPage() {
+export default async function ИсторииPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -18,7 +18,7 @@ export default async function StoriesPage() {
   const feedUserIds = [...followingIds, user.id]
 
   const { data: stories } = await supabase
-    .from('stories')
+    .from('истории')
     .select('*, user:users(*)')
     .in('user_id', feedUserIds)
     .gt('expires_at', new Date().toISOString())
@@ -38,15 +38,15 @@ export default async function StoriesPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Stories</h1>
+        <h1 className="text-2xl font-bold">Истории</h1>
         <CreateStoryButton currentUserId={user.id} />
       </div>
 
       {groupsArr.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
           <div className="text-5xl mb-4">📖</div>
-          <p className="font-semibold mb-1">No stories yet</p>
-          <p className="text-sm">Follow people to see their stories here</p>
+          <p className="font-semibold mb-1">Историй пока нет</p>
+          <p className="text-sm">Подпишитесь на людей чтобы видеть их истории</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -65,7 +65,7 @@ export default async function StoriesPage() {
               <div className="flex-1">
                 <p className="font-semibold">{group.user.username}</p>
                 <p className="text-sm text-muted-foreground">
-                  {group.stories.length} {group.stories.length === 1 ? 'story' : 'stories'} · {formatTimeAgo(group.latest)}
+                  {group.stories.length} {group.stories.length === 1 ? 'история' : 'истории'} · {formatTimeAgo(group.latest)}
                 </p>
               </div>
             </Link>

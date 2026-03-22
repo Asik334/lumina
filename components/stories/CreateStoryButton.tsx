@@ -68,7 +68,7 @@ export default function CreateStoryButton({ currentUserId }: { currentUserId: st
         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-neon-gradient text-sm font-semibold hover:opacity-90 transition-opacity"
       >
         <Plus className="w-4 h-4" />
-        Add Story
+        Добавить историю
       </button>
 
       <AnimatePresence>
@@ -89,7 +89,7 @@ export default function CreateStoryButton({ currentUserId }: { currentUserId: st
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between p-4 border-b border-white/10">
-                <h2 className="font-semibold">Add to Story</h2>
+                <h2 className="font-semibold">Новая история</h2>
                 <button onClick={() => setOpen(false)}>
                   <X className="w-5 h-5 text-muted-foreground" />
                 </button>
@@ -107,8 +107,8 @@ export default function CreateStoryButton({ currentUserId }: { currentUserId: st
                     <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
                       <Plus className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <p className="font-semibold text-sm mb-1">Upload Story Image</p>
-                    <p className="text-xs text-muted-foreground">Tap or drag to select</p>
+                    <p className="font-semibold text-sm mb-1">Загрузите фото</p>
+                    <p className="text-xs text-muted-foreground">Нажмите или перетащите</p>
                   </div>
                 </div>
               ) : (
@@ -121,7 +121,7 @@ export default function CreateStoryButton({ currentUserId }: { currentUserId: st
                 <div className="p-4 space-y-3">
                   <input
                     type="text"
-                    placeholder="Add a caption..."
+                    placeholder="Добавить подпись..."
                     value={caption}
                     onChange={e => setCaption(e.target.value)}
                     className="w-full bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none border-b border-white/10 pb-2"
@@ -132,7 +132,7 @@ export default function CreateStoryButton({ currentUserId }: { currentUserId: st
                     className="w-full py-2.5 rounded-xl bg-neon-gradient text-sm font-semibold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {uploading ? 'Uploading...' : 'Share Story'}
+                    {uploading ? 'Загрузка...' : 'Опубликовать'}
                   </button>
                 </div>
               )}
