@@ -1,4 +1,4 @@
-﻿import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AdminClient from './AdminClient'
 
@@ -11,10 +11,8 @@ export default async function AdminPage() {
   const { data: profile } = await supabase
     .from('users').select('*').eq('id', user.id).single()
 
-  const ADMIN_EMAILS = ['asikesenalin0@gmail.com', 'asik334@gmail.com']
-  const isAdmin = profile?.is_admin === true || ADMIN_EMAILS.includes(user.email || '')
-
-  if (!isAdmin) redirect('/feed')
+  // Проверяем только is_admin из БД — никаких захардкоженных email
+  if (!profile?.is_admin) redirect('/feed')
 
   const [
     { count: usersCount },
