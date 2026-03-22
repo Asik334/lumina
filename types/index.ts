@@ -12,6 +12,7 @@ export interface User {
   is_private: boolean
   is_verified: boolean
   is_admin: boolean
+  is_banned: boolean
   posts_count: number
   followers_count: number
   following_count: number
