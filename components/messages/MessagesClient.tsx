@@ -174,7 +174,7 @@ export default function MessagesClient({ currentUser, conversations: initialConv
       </div>
 
       {/* ─── МОБИЛЬНЫЙ: один экран ─── */}
-      <div className="md:hidden flex flex-col" id="mobile-chat-root">
+      <div className="md:hidden flex flex-col" id="mobile-chat-root" style={{ height: '100dvh' }}>
         {mobileView === 'list' ? (
           // Список
           <div className="flex flex-col flex-1 overflow-hidden">
@@ -264,8 +264,8 @@ function ChatArea({ messages, currentUser, otherUser, newMessage, sending, input
     <div className="flex flex-col flex-1 min-h-0">
       {/* Шапка чата */}
       <div
-        className="flex items-center gap-3 px-4 py-3 border-b border-white/10 glass flex-shrink-0"
-        style={showBack ? { paddingTop: 'calc(env(safe-area-inset-top) + 12px)' } : {}}
+        className="flex items-center gap-3 px-4 py-4 border-b border-white/10 flex-shrink-0"
+        style={{ background: 'rgba(8,8,16,0.97)', backdropFilter: 'blur(20px)' }}
       >
         {showBack && (
           <button onClick={onBack} className="mr-1 p-1.5 rounded-xl hover:bg-white/10 active:bg-white/20 transition-colors -ml-1">
@@ -284,7 +284,8 @@ function ChatArea({ messages, currentUser, otherUser, newMessage, sending, input
       </div>
 
       {/* Сообщения */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2" style={{ overscrollBehavior: 'contain' }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2" style={{ overscrollBehavior: "contain" }}>
+        <div className="flex-1" />
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
             <MessageCircle className="w-10 h-10 opacity-20" />
@@ -317,8 +318,8 @@ function ChatArea({ messages, currentUser, otherUser, newMessage, sending, input
 
       {/* Поле ввода */}
       <div
-        className="flex items-center gap-2 px-3 py-3 border-t border-white/10 glass flex-shrink-0"
-        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}
+        className="flex items-center gap-2 px-3 py-3 border-t border-white/10 flex-shrink-0"
+        style={{ background: 'rgba(8,8,16,0.97)', backdropFilter: 'blur(20px)', paddingBottom: 'calc(72px + env(safe-area-inset-bottom))' }}
       >
         <input
           ref={inputRef}

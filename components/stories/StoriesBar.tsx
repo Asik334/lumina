@@ -16,11 +16,13 @@ export default function StoriesBar({ storyGroups, currentUserId }: StoriesBarPro
   const [showLeftArrow, setShowLeftArrow] = useState(false)
   const [showRightArrow, setShowRightArrow] = useState(true)
 
+  // Фильтруем — свой аккаунт не показываем в рекомендациях
+  const filteredGroups = storyGroups.filter(g => g.user.id !== currentUserId)
+
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return
-    const amount = 200
     scrollRef.current.scrollBy({
-      left: direction === 'left' ? -amount : amount,
+      left: direction === 'left' ? -200 : 200,
       behavior: 'smooth',
     })
   }
@@ -32,12 +34,15 @@ export default function StoriesBar({ storyGroups, currentUserId }: StoriesBarPro
     setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10)
   }
 
+  if (filteredGroups.length === 0) return null
+
   return (
     <div className="relative mb-6 glass rounded-2xl p-4">
+      {/* Стрелки только на десктопе */}
       {showLeftArrow && (
         <button
           onClick={() => scroll('left')}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full glass border border-white/10 flex items-center justify-center"
+          className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full glass border border-white/10 items-center justify-center"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -48,7 +53,7 @@ export default function StoriesBar({ storyGroups, currentUserId }: StoriesBarPro
         onScroll={handleScroll}
         className="flex gap-4 overflow-x-auto hide-scrollbar"
       >
-        {storyGroups.map((group) => (
+        {filteredGroups.map((group) => (
           <Link
             key={group.user.id}
             href={`/stories/${group.user.id}`}
@@ -61,7 +66,7 @@ export default function StoriesBar({ storyGroups, currentUserId }: StoriesBarPro
               storyViewed={!group.hasUnviewed}
             />
             <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors truncate w-14 text-center">
-              {group.user.id === currentUserId ? 'Ваша история' : group.user.username}
+              {group.user.username}
             </span>
           </Link>
         ))}
@@ -70,7 +75,7 @@ export default function StoriesBar({ storyGroups, currentUserId }: StoriesBarPro
       {showRightArrow && (
         <button
           onClick={() => scroll('right')}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full glass border border-white/10 flex items-center justify-center"
+          className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full glass border border-white/10 items-center justify-center"
         >
           <ChevronRight className="w-4 h-4" />
         </button>

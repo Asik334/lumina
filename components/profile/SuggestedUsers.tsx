@@ -15,6 +15,9 @@ interface SuggestedUsersProps {
 export default function SuggestedUsers({ currentUser, suggestedUsers, currentUserId }: SuggestedUsersProps) {
   const [following, setFollowing] = useState<Set<string>>(new Set())
 
+  // Убираем себя из рекомендаций
+  const filtered = suggestedUsers.filter(u => u.id !== currentUserId)
+
   const handleFollow = async (userId: string) => {
     const supabase = createClient()
     const isFollowing = following.has(userId)
@@ -34,7 +37,7 @@ export default function SuggestedUsers({ currentUser, suggestedUsers, currentUse
 
   return (
     <div className="sticky top-6">
-      {/* Current user */}
+      {/* Текущий пользователь */}
       <div className="flex items-center gap-3 mb-6">
         <Link href={`/profile/${currentUser.username}`}>
           <UserAvatar user={currentUser} size="md" />
@@ -45,23 +48,20 @@ export default function SuggestedUsers({ currentUser, suggestedUsers, currentUse
           </Link>
           <p className="text-xs text-muted-foreground truncate">{currentUser.full_name || 'Имя не указано'}</p>
         </div>
-        <button className="text-xs text-neon-blue font-semibold hover:opacity-80 transition-opacity">
-          Switch
-        </button>
       </div>
 
-      {/* Suggestions */}
-      {suggestedUsers.length > 0 && (
+      {/* Рекомендации */}
+      {filtered.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Suggested for you</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Рекомендации</span>
             <Link href="/explore" className="text-xs font-semibold hover:opacity-80 transition-opacity">
-              See all
+              Все
             </Link>
           </div>
 
           <div className="space-y-3">
-            {suggestedUsers.map(user => (
+            {filtered.map(user => (
               <div key={user.id} className="flex items-center gap-3">
                 <Link href={`/profile/${user.username}`}>
                   <UserAvatar user={user} size="sm" />
@@ -70,7 +70,7 @@ export default function SuggestedUsers({ currentUser, suggestedUsers, currentUse
                   <Link href={`/profile/${user.username}`} className="font-semibold text-xs hover:opacity-80 block truncate">
                     {user.username}
                   </Link>
-                  <p className="text-xs text-muted-foreground">Suggested for you</p>
+                  <p className="text-xs text-muted-foreground">Возможно, вы знакомы</p>
                 </div>
                 <button
                   onClick={() => handleFollow(user.id)}
@@ -88,9 +88,7 @@ export default function SuggestedUsers({ currentUser, suggestedUsers, currentUse
         </>
       )}
 
-      <p className="text-xs text-muted-foreground mt-8">
-        © 2025 Lumina
-      </p>
+      <p className="text-xs text-muted-foreground mt-8">© 2025 Lumina</p>
     </div>
   )
 }
