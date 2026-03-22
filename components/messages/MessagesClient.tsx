@@ -128,9 +128,7 @@ export default function MessagesClient({ currentUser, conversations: initialConv
               return (
                 <button key={conv.id} onClick={() => setSelectedConv(conv)}
                   className={`w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors text-left ${selectedConv?.id === conv.id ? 'bg-white/10' : ''}`}>
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
-                    {other.username?.[0]?.toUpperCase()}
-                  </div>
+                  <UserAvatar user={other} size="md" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">@{other.username}</p>
                     {conv.last_message && <p className="text-xs text-muted-foreground truncate">{conv.last_message}</p>}
@@ -149,9 +147,7 @@ export default function MessagesClient({ currentUser, conversations: initialConv
         {selectedConv ? (
           <>
             <div className="p-4 border-b border-white/10 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-sm font-bold text-white">
-                {getOtherUser(selectedConv)?.username?.[0]?.toUpperCase()}
-              </div>
+              <UserAvatar user={getOtherUser(selectedConv)} size="sm" />
               <p className="font-semibold">@{getOtherUser(selectedConv)?.username}</p>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -204,5 +200,6 @@ export default function MessagesClient({ currentUser, conversations: initialConv
     </div>
   )
 }
+
 
 
