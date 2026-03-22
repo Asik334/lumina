@@ -35,6 +35,7 @@ export function getSupabaseStorageUrl(bucket: string, path: string): string {
 
 export function generateUsername(email: string): string {
   const base = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')
-  const suffix = Math.floor(Math.random() * 9999)
-  return `${base}${suffix}`
+  // crypto.randomUUID() вместо Math.random() — гарантирует уникальность
+  const suffix = crypto.randomUUID().replace(/-/g, '').slice(0, 6)
+  return `${base}_${suffix}`
 }

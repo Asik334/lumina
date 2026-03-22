@@ -3,6 +3,29 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { z } from 'zod'
+
+// =============================================
+// СХЕМЫ ВАЛИДАЦИИ
+// =============================================
+
+const signUpSchema = z.object({
+  email: z.string().email('Некорректный email'),
+  password: z.string().min(8, 'Пароль минимум 8 символов'),
+  username: z.string().regex(/^[a-z0-9_.]{3,30}$/, 'Имя пользователя: 3–30 символов, только a-z, 0-9, _ и .'),
+  fullName: z.string().max(60, 'Имя не более 60 символов').optional(),
+})
+
+const profileSchema = z.object({
+  username: z.string().regex(/^[a-z0-9_.]{1,30}$/, 'Некорректный формат'),
+  fullName: z.string().max(60).optional(),
+  bio: z.string().max(300, 'Биография не более 300 символов').optional(),
+  website: z.union([z.string().regex(/^https?:\/\/.+/, 'Некорректный URL'), z.literal('')]).optional(),
+})
+
+const commentSchema = z.object({
+  content: z.string().min(1, 'Комментарий не может быть пустым').max(1000, 'Максимум 1000 символов'),
+})
 
 // =============================================
 // AUTH ACTIONS
@@ -24,10 +47,19 @@ export async function signIn(formData: FormData) {
 }
 
 export async function signUp(formData: FormData) {
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-  const username = formData.get('username') as string
-  const fullName = formData.get('fullName') as string
+  const raw = {
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
+    username: formData.get('username') as string,
+    fullName: formData.get('fullName') as string,
+  }
+
+  const parsed = signUpSchema.safeParse(raw)
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0].message }
+  }
+
+  const { email, password, username, fullName } = parsed.data
 
   const supabase = createClient()
 
@@ -39,7 +71,7 @@ export async function signUp(formData: FormData) {
     .single()
 
   if (existing) {
-    return { error: 'Username is already taken' }
+    return { error: 'Это имя пользователя уже занято' }
   }
 
   const { error } = await supabase.auth.signUp({
@@ -74,15 +106,19 @@ export async function updateProfile(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const username = (formData.get('username') as string).toLowerCase().trim()
-  const fullName = (formData.get('fullName') as string).trim()
-  const bio = (formData.get('bio') as string).trim()
-  const website = (formData.get('website') as string).trim()
-
-  // Validate username
-  if (!/^[a-z0-9_.]{1,30}$/.test(username)) {
-    return { error: 'Invalid username format' }
+  const raw = {
+    username: (formData.get('username') as string).toLowerCase().trim(),
+    fullName: (formData.get('fullName') as string).trim(),
+    bio: (formData.get('bio') as string).trim(),
+    website: (formData.get('website') as string).trim(),
   }
+
+  const parsed = profileSchema.safeParse(raw)
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0].message }
+  }
+
+  const { username, fullName, bio, website } = parsed.data
 
   // Check uniqueness if changed
   const { data: currentProfile } = await supabase
@@ -99,7 +135,7 @@ export async function updateProfile(formData: FormData) {
       .neq('id', user.id)
       .single()
 
-    if (taken) return { error: 'Username is already taken' }
+    if (taken) return { error: 'Это имя пользователя уже занято' }
   }
 
   const { error } = await supabase
@@ -133,7 +169,6 @@ export async function followUser(followingId: string) {
 
   if (error) return { error: error.message }
 
-  // Notify the followed user
   const { data: followed } = await supabase
     .from('users')
     .select('username')
@@ -245,12 +280,17 @@ export async function addComment(postId: string, content: string, parentId?: str
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const parsed = commentSchema.safeParse({ content })
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0].message }
+  }
+
   const { data: comment, error } = await supabase
     .from('comments')
     .insert({
       user_id: user.id,
       post_id: postId,
-      content: content.trim(),
+      content: parsed.data.content.trim(),
       parent_id: parentId || null,
     })
     .select('*, user:users(*)')
@@ -298,3 +338,4 @@ export async function deleteComment(commentId: string) {
   revalidatePath('/feed')
   return { success: true }
 }
+

@@ -74,6 +74,8 @@ export default function CreatePostModal({ onClose }: CreatePostModalProps) {
       })
 
     if (postError) {
+      // Rollback: удаляем загруженный файл, чтобы не засорять storage
+      await supabase.storage.from('posts').remove([fileName])
       setError('Не удалось создать публикацию. Попробуйте ещё раз.')
       setUploading(false)
       return

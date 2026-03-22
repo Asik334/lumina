@@ -32,20 +32,29 @@ export default function PostCard({ post, currentUserId, onLikeUpdate }: PostCard
     if (isLiking) return
     setIsLiking(true)
 
-    const supabase = createClient()
+    // Сохраняем предыдущее состояние для rollback
+    const prevLiked = liked
+    const prevCount = likesCount
+
+    // Оптимистичное обновление
     const newLiked = !liked
     const newCount = newLiked ? likesCount + 1 : likesCount - 1
-
     setLiked(newLiked)
     setLikesCount(newCount)
     onLikeUpdate(post.id, newLiked, newCount)
 
-    if (newLiked) {
-      await supabase.from('likes').insert({ user_id: currentUserId, post_id: post.id })
-    } else {
-      await supabase.from('likes').delete()
-        .eq('user_id', currentUserId)
-        .eq('post_id', post.id)
+    const supabase = createClient()
+    const { error } = newLiked
+      ? await supabase.from('likes').insert({ user_id: currentUserId, post_id: post.id })
+      : await supabase.from('likes').delete()
+          .eq('user_id', currentUserId)
+          .eq('post_id', post.id)
+
+    if (error) {
+      // Rollback при ошибке сети или БД
+      setLiked(prevLiked)
+      setLikesCount(prevCount)
+      onLikeUpdate(post.id, prevLiked, prevCount)
     }
 
     setIsLiking(false)
@@ -144,6 +153,8 @@ export default function PostCard({ post, currentUserId, onLikeUpdate }: PostCard
               <motion.button
                 whileTap={{ scale: 0.85 }}
                 onClick={handleLike}
+                aria-label={liked ? 'Убрать лайк' : 'Нравится'}
+                aria-pressed={liked}
                 className="transition-colors"
               >
                 <Heart
@@ -157,12 +168,14 @@ export default function PostCard({ post, currentUserId, onLikeUpdate }: PostCard
               <motion.button
                 whileTap={{ scale: 0.85 }}
                 onClick={() => setShowComments(true)}
+                aria-label="Комментарии"
                 className="text-foreground hover:text-muted-foreground transition-colors"
               >
                 <MessageCircle className="w-6 h-6" />
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.85 }}
+                aria-label="Поделиться"
                 className="text-foreground hover:text-muted-foreground transition-colors"
               >
                 <Send className="w-6 h-6" />
@@ -171,6 +184,8 @@ export default function PostCard({ post, currentUserId, onLikeUpdate }: PostCard
             <motion.button
               whileTap={{ scale: 0.85 }}
               onClick={() => setSaved(!saved)}
+              aria-label={saved ? 'Убрать из сохранённых' : 'Сохранить'}
+              aria-pressed={saved}
               className="text-foreground hover:text-muted-foreground transition-colors"
             >
               <Bookmark className={`w-6 h-6 ${saved ? 'fill-current' : ''}`} />
