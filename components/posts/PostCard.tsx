@@ -29,36 +29,33 @@ export default function PostCard({ post, currentUserId, onLikeUpdate }: PostCard
   const [isLiking, setIsLiking] = useState(false)
 
   const handleLike = async () => {
-    if (isLiking) return
-    setIsLiking(true)
+  if (isLiking) return
+  setIsLiking(true)
 
-    // Сохраняем предыдущее состояние для rollback
-    const prevLiked = liked
-    const prevCount = likesCount
+  const prevLiked = liked
+  const prevCount = likesCount
 
-    // Оптимистичное обновление
-    const newLiked = !liked
-    const newCount = newLiked ? likesCount + 1 : likesCount - 1
-    setLiked(newLiked)
-    setLikesCount(newCount)
-    onLikeUpdate(post.id, newLiked, newCount)
+  const newLiked = !liked
+  const newCount = newLiked ? likesCount + 1 : likesCount - 1
+  setLiked(newLiked)
+  setLikesCount(newCount)
+  onLikeUpdate(post.id, newLiked, newCount)
 
-    const supabase = createClient()
-    const { error } = newLiked
-      ? await supabase.from('likes').insert({ user_id: currentUserId, post_id: post.id })
-      : await supabase.from('likes').delete()
-          .eq('user_id', currentUserId)
-          .eq('post_id', post.id)
+  const res = await fetch(`/api/likes${newLiked ? '' : `?postId=${post.id}`}`, {
+    method: newLiked ? 'POST' : 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    ...(newLiked ? { body: JSON.stringify({ postId: post.id }) } : {}),
+  })
+  const error = res.ok ? null : await res.json()
 
-    if (error) {
-      // Rollback при ошибке сети или БД
-      setLiked(prevLiked)
-      setLikesCount(prevCount)
-      onLikeUpdate(post.id, prevLiked, prevCount)
-    }
-
-    setIsLiking(false)
+  if (error) {
+    setLiked(prevLiked)
+    setLikesCount(prevCount)
+    onLikeUpdate(post.id, prevLiked, prevCount)
   }
+
+  setIsLiking(false)
+}
 
   const handleDoubleTap = () => {
     if (!liked) {
