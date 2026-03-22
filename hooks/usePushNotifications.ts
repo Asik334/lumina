@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react'
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+// Хардкод ключа как fallback — Next.js подставит переменную на этапе сборки
+const VAPID_PUBLIC_KEY: string =
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+  'BFKHq-iXmhE3LfAyP5UVxr6BSDtx_jHYeeNgZNDs3lpKe4kSGbzmn0GwlQZgfH_pKHZ95jIrIoF3F2IRzYyxb74'
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
