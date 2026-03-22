@@ -17,10 +17,16 @@ export default function NotificationsClient() {
   useEffect(() => {
     const supabase = createClient()
 
-    const fetchNotifications = async () => {
+    const setup = async () => {
+      // Получаем текущего пользователя
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Загружаем уведомления
       const { data, error } = await supabase
         .from('notifications')
         .select('*, actor:users!notifications_actor_id_fkey(*), post:posts!post_id(id, image_url)')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50)
 
@@ -32,41 +38,48 @@ export default function NotificationsClient() {
           await supabase
             .from('notifications')
             .update({ is_read: true })
+            .eq('user_id', user.id)
             .eq('is_read', false)
         }
       }
       setLoading(false)
-    }
 
-    fetchNotifications()
+      // Realtime подписка с фильтром по user_id
+      const channel = supabase
+        .channel('notifications-' + user.id)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          async (payload) => {
+            console.log('🔔 Realtime событие:', payload)
+            const { data: notif } = await supabase
+              .from('notifications')
+              .select('*, actor:users!notifications_actor_id_fkey(*), post:posts!post_id(id, image_url)')
+              .eq('id', payload.new.id)
+              .single()
 
-    const channel = supabase
-      .channel('notifications-realtime')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications' },
-        async (payload) => {
-          console.log('🔔 Realtime событие:', payload)
-          const { data } = await supabase
-            .from('notifications')
-            .select('*, actor:users!notifications_actor_id_fkey(*), post:posts!post_id(id, image_url)')
-            .eq('id', payload.new.id)
-            .single()
-
-          if (data) {
-            setNotifications((prev) => [data, ...prev])
-            await supabase.from('notifications').update({ is_read: true }).eq('id', data.id)
+            if (notif) {
+              setNotifications((prev) => [notif, ...prev])
+              await supabase.from('notifications').update({ is_read: true }).eq('id', notif.id)
+            }
           }
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Realtime статус:', status)
-        setRealtimeStatus(status)
-      })
+        )
+        .subscribe((status) => {
+          console.log('📡 Realtime статус:', status)
+          setRealtimeStatus(status)
+        })
 
-    return () => {
-      supabase.removeChannel(channel)
+      return () => {
+        supabase.removeChannel(channel)
+      }
     }
+
+    setup()
   }, [])
 
   const getNotifConfig = (type: string) => {
