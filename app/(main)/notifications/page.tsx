@@ -1,26 +1,74 @@
-﻿import PushToggle from '@/components/ui/PushToggle'
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import PushToggle from '@/components/ui/PushToggle'
 import Link from 'next/link'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { formatTimeAgo } from '@/lib/utils'
 import { Bell, Heart, MessageCircle, UserPlus, AtSign } from 'lucide-react'
 
-export default async function NotificationsPage() {
+export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
 
-  const { data: notifications, error } = await supabase
-    .from('notifications')
-    .select('*, actor:users!actor_id(*), post:posts!post_id(id, image_url)')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(50)
+  const fetchNotifications = async () => {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*, actor:users!notifications_actor_id_fkey(*), post:posts!post_id(id, image_url)')
+      .order('created_at', { ascending: false })
+      .limit(50)
 
-  if (notifications && notifications.length > 0) {
-    await supabase.from('notifications').update({ is_read: true })
-      .eq('user_id', user.id).eq('is_read', false)
+    if (error) {
+      setError(error.message)
+    } else {
+      setNotifications(data || [])
+      if (data && data.length > 0) {
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('is_read', false)
+      }
+    }
+    setLoading(false)
   }
+
+  useEffect(() => {
+    fetchNotifications()
+
+    const channel = supabase
+      .channel('notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+        },
+        async (payload) => {
+          const { data } = await supabase
+            .from('notifications')
+            .select('*, actor:users!notifications_actor_id_fkey(*), post:posts!post_id(id, image_url)')
+            .eq('id', payload.new.id)
+            .single()
+
+          if (data) {
+            setNotifications((prev) => [data, ...prev])
+            await supabase
+              .from('notifications')
+              .update({ is_read: true })
+              .eq('id', data.id)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   const getNotifConfig = (type: string) => {
     switch (type) {
@@ -40,17 +88,22 @@ export default async function NotificationsPage() {
         <h1 className="text-2xl font-bold">Уведомления</h1>
       </div>
 
-<div className="px-4 mb-4 sm:px-0">
-  <PushToggle />
-</div>
+      <div className="px-4 mb-4 sm:px-0">
+        <PushToggle />
+      </div>
 
-      {error ? (
+      {loading ? (
+        <div className="text-center py-20">
+          <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20 animate-pulse" />
+          <p className="text-sm text-muted-foreground">Загрузка...</p>
+        </div>
+      ) : error ? (
         <div className="text-center py-20">
           <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
           <p className="font-semibold mb-1">Не удалось загрузить уведомления</p>
-          <p className="text-xs text-red-400 mt-2 font-mono">{error.message}</p>
+          <p className="text-xs text-red-400 mt-2 font-mono">{error}</p>
         </div>
-      ) : !notifications || notifications.length === 0 ? (
+      ) : notifications.length === 0 ? (
         <div className="text-center py-20">
           <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
           <p className="font-semibold mb-1">Уведомлений пока нет</p>
@@ -62,7 +115,12 @@ export default async function NotificationsPage() {
             const config = getNotifConfig(notif.type)
             const Icon = config.icon
             return (
-              <div key={notif.id} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${!notif.is_read ? 'bg-white/5 border border-white/10' : 'hover:bg-white/3'}`}>
+              <div
+                key={notif.id}
+                className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${
+                  !notif.is_read ? 'bg-white/5 border border-white/10' : 'hover:bg-white/3'
+                }`}
+              >
                 <div className="relative flex-shrink-0">
                   {notif.actor ? (
                     <Link href={`/profile/${notif.actor.username}`}>
