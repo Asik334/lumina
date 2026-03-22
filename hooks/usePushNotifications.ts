@@ -15,6 +15,17 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray
 }
 
+// Гарантируем регистрацию SW и возвращаем registration
+async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration> {
+  if (!('serviceWorker' in navigator)) {
+    throw new Error('Service Worker не поддерживается')
+  }
+  // Регистрируем SW если ещё не зарегистрирован
+  await navigator.serviceWorker.register('/sw.js')
+  // Ждём готовности
+  return navigator.serviceWorker.ready
+}
+
 export function usePushNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [subscribed, setSubscribed] = useState(false)
@@ -29,9 +40,13 @@ export function usePushNotifications() {
 
   const checkSubscription = async () => {
     if (!('serviceWorker' in navigator)) return
-    const reg = await navigator.serviceWorker.ready
-    const sub = await reg.pushManager.getSubscription()
-    setSubscribed(!!sub)
+    try {
+      const reg = await getServiceWorkerRegistration()
+      const sub = await reg.pushManager.getSubscription()
+      setSubscribed(!!sub)
+    } catch {
+      setSubscribed(false)
+    }
   }
 
   const subscribe = async () => {
@@ -42,10 +57,11 @@ export function usePushNotifications() {
       // Запрашиваем разрешение
       const perm = await Notification.requestPermission()
       setPermission(perm)
-      if (perm !== 'granted') { setLoading(false); return }
+      if (perm !== 'granted') return
 
-      // Подписываемся
-      const reg = await navigator.serviceWorker.ready
+      // Получаем registration (с гарантированной регистрацией SW)
+      const reg = await getServiceWorkerRegistration()
+
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
@@ -53,7 +69,7 @@ export function usePushNotifications() {
 
       // Сохраняем на сервере
       const subJson = sub.toJSON()
-      await fetch('/api/push/subscribe', {
+      const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -61,6 +77,8 @@ export function usePushNotifications() {
           keys: { p256dh: subJson.keys?.p256dh, auth: subJson.keys?.auth },
         }),
       })
+
+      if (!res.ok) throw new Error('Ошибка сохранения подписки на сервере')
 
       setSubscribed(true)
     } catch (err) {
@@ -75,9 +93,9 @@ export function usePushNotifications() {
     setLoading(true)
 
     try {
-      const reg = await navigator.serviceWorker.ready
+      const reg = await getServiceWorkerRegistration()
       const sub = await reg.pushManager.getSubscription()
-      if (!sub) { setLoading(false); return }
+      if (!sub) return
 
       await fetch('/api/push/subscribe', {
         method: 'DELETE',
@@ -94,7 +112,8 @@ export function usePushNotifications() {
     }
   }
 
-  const isSupported = typeof window !== 'undefined' &&
+  const isSupported =
+    typeof window !== 'undefined' &&
     'serviceWorker' in navigator &&
     'PushManager' in window &&
     'Notification' in window
