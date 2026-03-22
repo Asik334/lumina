@@ -1,41 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY!
 
-// Отправка push через Web Push Protocol
 async function sendPushNotification(
   subscription: { endpoint: string; p256dh: string; auth: string },
   payload: object
 ) {
-  const { endpoint, p256dh, auth } = subscription
-
-  // Импортируем web-push динамически
   const webpush = await import('web-push')
   webpush.default.setVapidDetails(
     'mailto:admin@lumina.app',
     VAPID_PUBLIC_KEY,
     VAPID_PRIVATE_KEY
   )
-
   await webpush.default.sendNotification(
-    { endpoint, keys: { p256dh, auth } },
+    { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
     JSON.stringify(payload)
   )
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Используем service role — не требует сессии
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
   const { targetUserId, title, body, url, type } = await request.json()
   if (!targetUserId || !title) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  // Получаем подписки целевого пользователя
   const { data: subscriptions } = await supabase
     .from('push_subscriptions')
     .select('*')
@@ -55,14 +51,12 @@ export async function POST(request: NextRequest) {
       await sendPushNotification(sub, payload)
       sent++
     } catch (err: any) {
-      // Если подписка истекла — удаляем
       if (err.statusCode === 410 || err.statusCode === 404) {
         toDelete.push(sub.id)
       }
     }
   }))
 
-  // Удаляем истёкшие подписки
   if (toDelete.length > 0) {
     await supabase.from('push_subscriptions').delete().in('id', toDelete)
   }
