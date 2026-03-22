@@ -53,29 +53,25 @@ export default function CommentsModal({ post, currentUserId, onClose }: Comments
     setLoading(false)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newComment.trim() || submitting) return
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  if (!newComment.trim() || submitting) return
 
-    setSubmitting(true)
-    const supabase = createClient()
+  setSubmitting(true)
 
-    const { data, error } = await supabase
-      .from('comments')
-      .insert({
-        user_id: currentUserId,
-        post_id: post.id,
-        content: newComment.trim(),
-      })
-      .select('*, user:users(*)')
-      .single()
+  const res = await fetch('/api/comments', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ postId: post.id, content: newComment.trim() }),
+  })
+  const data = await res.json()
 
-    if (!error && data) {
-      setComments(prev => [...prev, data])
-      setNewComment('')
-    }
-    setSubmitting(false)
+  if (res.ok && data.comment) {
+    setComments(prev => [...prev, data.comment])
+    setNewComment('')
   }
+  setSubmitting(false)
+}
 
   return (
     <AnimatePresence>

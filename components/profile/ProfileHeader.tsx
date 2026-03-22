@@ -32,21 +32,21 @@ export default function ProfileHeader({
   const handleFollow = async () => {
     if (loading) return
     setLoading(true)
-    const supabase = createClient()
-
+    
+    
     if (following) {
-      await supabase.from('followers')
-        .delete()
-        .eq('follower_id', currentUserId)
-        .eq('following_id', profile.id)
-      setFollowing(false)
-      setFollowersCount(c => c - 1)
-    } else {
-      await supabase.from('followers')
-        .insert({ follower_id: currentUserId, following_id: profile.id })
-      setFollowing(true)
-      setFollowersCount(c => c + 1)
-    }
+  await fetch(`/api/followers?followingId=${profile.id}`, { method: 'DELETE' })
+  setFollowing(false)
+  setFollowersCount(c => c - 1)
+} else {
+  await fetch('/api/followers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ followingId: profile.id }),
+  })
+  setFollowing(true)
+  setFollowersCount(c => c + 1)
+}
     setLoading(false)
   }
 
