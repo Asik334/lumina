@@ -22,7 +22,6 @@ export default function MessagesClient({ currentUser, conversations: initialConv
   const supabase = createClient()
   const searchParams = useSearchParams()
 
-  // Открываем чат из URL параметра ?chat=id
   useEffect(() => {
     const chatId = searchParams.get('chat')
     if (chatId && conversations.length > 0) {
@@ -54,13 +53,14 @@ export default function MessagesClient({ currentUser, conversations: initialConv
         schema: 'public',
         table: 'messages',
         filter: `conversation_id=eq.${selectedConv.id}`,
-      }, async (payload) => {
-        const { data: msg } = await supabase
-          .from('messages')
-          .select('*, sender:users!sender_id(id, username, avatar_url)')
-          .eq('id', payload.new.id)
-          .single()
-        if (msg) setMessages(prev => [...prev, msg])
+      }, (payload) => {
+        const newMsg = payload.new as any
+        // Не дублируем если уже добавили локально
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === newMsg.id)
+          if (exists) return prev
+          return [...prev, { ...newMsg, sender: { id: newMsg.sender_id } }]
+        })
       })
       .subscribe()
 
@@ -72,15 +72,27 @@ export default function MessagesClient({ currentUser, conversations: initialConv
     setSending(true)
     const text = newMessage.trim()
     setNewMessage('')
-    await supabase.from('messages').insert({
-      conversation_id: selectedConv.id,
-      sender_id: currentUser.id,
-      content: text,
-    })
+
+    const { data: inserted } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: selectedConv.id,
+        sender_id: currentUser.id,
+        content: text,
+      })
+      .select('*')
+      .single()
+
+    // Добавляем сразу локально
+    if (inserted) {
+      setMessages(prev => [...prev, { ...inserted, sender: currentUser }])
+    }
+
     await supabase
       .from('conversations')
       .update({ last_message_at: new Date().toISOString(), last_message: text })
       .eq('id', selectedConv.id)
+
     setSending(false)
   }
 
@@ -142,10 +154,10 @@ export default function MessagesClient({ currentUser, conversations: initialConv
               <p className="font-semibold">@{getOtherUser(selectedConv)?.username}</p>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {messages.map(msg => {
+              {messages.map((msg, i) => {
                 const isMe = msg.sender_id === currentUser.id
                 return (
-                  <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                  <div key={msg.id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-xs px-4 py-2.5 rounded-2xl text-sm ${isMe ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white/10 rounded-bl-sm'}`}>
                       <p>{msg.content}</p>
                       <p className={`text-xs mt-1 ${isMe ? 'text-white/60' : 'text-muted-foreground'}`}>
