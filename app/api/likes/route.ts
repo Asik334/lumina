@@ -25,12 +25,23 @@ export async function POST(request: NextRequest) {
     .eq('id', postId)
     .single()
 
-  if (post && post.user_id !== user.id) {
+ if (post && post.user_id !== user.id) {
     await supabase.from('notifications').insert({
       user_id: post.user_id,
       actor_id: user.id,
       type: 'like',
       post_id: postId,
+    })
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: request.headers.get('cookie') || '' },
+      body: JSON.stringify({
+        targetUserId: post.user_id,
+        title: '❤️ Новый лайк',
+        body: 'Кто-то оценил вашу публикацию',
+        url: '/notifications',
+        type: 'like'
+      }),
     })
   }
 

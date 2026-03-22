@@ -29,8 +29,21 @@ export async function POST(request: NextRequest) {
     comment_id: null,
   })
 
+  await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', cookie: request.headers.get('cookie') || '' },
+    body: JSON.stringify({
+      targetUserId: followingId,
+      title: '👤 Новый подписчик',
+      body: 'Кто-то подписался на вас',
+      url: '/notifications',
+      type: 'follow'
+    }),
+  })
+
   return NextResponse.json({ success: true })
 }
+  
 
 export async function DELETE(request: NextRequest) {
   const supabase = createClient()

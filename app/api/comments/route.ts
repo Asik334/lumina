@@ -57,9 +57,20 @@ export async function POST(request: NextRequest) {
       post_id: postId,
       comment_id: comment.id,
     })
-  }
+  await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: request.headers.get('cookie') || '' },
+      body: JSON.stringify({
+        targetUserId: post.user_id,
+        title: '💬 Новый комментарий',
+        body: 'Кто-то прокомментировал вашу публикацию',
+        url: '/notifications',
+        type: 'comment'
+      }),
+    })
+    } 
 
-  return NextResponse.json({ comment })
+  return NextResponse.json({ comment })      
 }
 
 export async function DELETE(request: NextRequest) {
