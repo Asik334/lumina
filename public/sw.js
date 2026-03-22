@@ -1,6 +1,5 @@
 const CACHE_NAME = 'lumina-v2'
 const STATIC_ASSETS = [
-  '/feed',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
@@ -23,24 +22,41 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('fetch', (event) => {
-  if (
-    event.request.method !== 'GET' ||
-    event.request.url.includes('/api/') ||
-    event.request.url.includes('supabase.co') ||
-    event.request.url.includes('chrome-extension')
-  ) return
+  const url = new URL(event.request.url)
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if (response.ok && event.request.url.includes('/icons/')) {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
-        }
-        return response
-      })
-      .catch(() => caches.match(event.request))
-  )
+  // Пропускаем всё кроме GET
+  if (event.request.method !== 'GET') return
+
+  // Пропускаем API запросы
+  if (url.pathname.startsWith('/api/')) return
+
+  // Пропускаем Supabase
+  if (url.hostname.includes('supabase.co')) return
+
+  // Пропускаем chrome-extension
+  if (url.protocol === 'chrome-extension:') return
+
+  // Пропускаем Next.js внутренние запросы (_next)
+  if (url.pathname.startsWith('/_next/')) return
+
+  // Пропускаем HTML страницы — пусть Next.js сам их отдаёт
+  const acceptHeader = event.request.headers.get('accept') || ''
+  if (acceptHeader.includes('text/html')) return
+
+  // Кэшируем только иконки
+  if (url.pathname.startsWith('/icons/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone()
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
+          }
+          return response
+        })
+        .catch(() => caches.match(event.request))
+    )
+  }
 })
 
 // ─── PUSH УВЕДОМЛЕНИЯ ───
@@ -78,14 +94,12 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Если приложение уже открыто — переходим
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           client.navigate(url)
           return client.focus()
         }
       }
-      // Иначе открываем новую вкладку
       if (clients.openWindow) return clients.openWindow(url)
     })
   )
