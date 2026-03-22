@@ -1,3 +1,7 @@
+// =============================================
+// LUMINA — TypeScript типы (новая схема)
+// =============================================
+
 export interface User {
   id: string
   username: string
@@ -22,10 +26,33 @@ export interface Post {
   location: string | null
   likes_count: number
   comments_count: number
+  reposts_count: number
+  saves_count: number
+  // репост / цитата
+  is_repost: boolean
+  original_post_id: string | null
+  quote_text: string | null
   created_at: string
   updated_at: string
+  // joins
   user?: User
   liked_by_user?: boolean
+  saved_by_user?: boolean
+  reposted_by_user?: boolean
+  original_post?: Post
+  hashtags?: Hashtag[]
+}
+
+export interface Hashtag {
+  id: string
+  name: string          // без #, нижний регистр
+  posts_count: number
+  created_at: string
+}
+
+export interface PostHashtag {
+  post_id: string
+  hashtag_id: string
 }
 
 export interface Story {
@@ -40,6 +67,26 @@ export interface Story {
   viewed_by_user?: boolean
 }
 
+export interface StoryView {
+  id: string
+  story_id: string
+  viewer_id: string
+  viewed_at: string
+}
+
+export interface StoryGroup {
+  user: User
+  stories: Story[]
+  hasUnviewed: boolean
+}
+
+export interface Like {
+  id: string
+  user_id: string
+  post_id: string
+  created_at: string
+}
+
 export interface Comment {
   id: string
   user_id: string
@@ -50,13 +97,26 @@ export interface Comment {
   created_at: string
   updated_at: string
   user?: User
+  replies?: Comment[]
 }
 
-export interface Like {
+export interface Bookmark {
   id: string
   user_id: string
   post_id: string
   created_at: string
+  post?: Post
+}
+
+export interface Repost {
+  id: string
+  user_id: string
+  original_post_id: string
+  repost_post_id: string | null
+  quote_text: string | null
+  created_at: string
+  user?: User
+  original_post?: Post
 }
 
 export interface Follower {
@@ -65,6 +125,17 @@ export interface Follower {
   following_id: string
   status: 'pending' | 'accepted'
   created_at: string
+}
+
+export interface Conversation {
+  id: string
+  participant_1: string
+  participant_2: string
+  last_message: string | null
+  last_message_at: string | null
+  created_at: string
+  other_user?: User
+  unread_count?: number
 }
 
 export interface Message {
@@ -78,31 +149,15 @@ export interface Message {
   sender?: User
 }
 
-export interface Conversation {
-  id: string
-  participant_1: string
-  participant_2: string
-  last_message: string | null
-  last_message_at: string | null
-  created_at: string
-  other_user?: User
-}
-
 export interface Notification {
   id: string
   user_id: string
   actor_id: string
-  type: 'like' | 'comment' | 'follow' | 'mention' | 'reply'
+  type: 'like' | 'comment' | 'follow' | 'mention' | 'reply' | 'repost' | 'quote' | 'bookmark'
   post_id: string | null
   comment_id: string | null
   is_read: boolean
   created_at: string
   actor?: User
   post?: Post
-}
-
-export interface StoryGroup {
-  user: User
-  stories: Story[]
-  hasUnviewed: boolean
 }
