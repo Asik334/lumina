@@ -11,6 +11,7 @@ export interface User {
   website: string | null
   is_private: boolean
   is_verified: boolean
+  is_admin: boolean
   posts_count: number
   followers_count: number
   following_count: number
