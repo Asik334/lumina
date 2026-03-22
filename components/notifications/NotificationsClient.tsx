@@ -16,11 +16,12 @@ export default function NotificationsClient() {
 
   useEffect(() => {
     const supabase = createClient()
+    let currentUserId: string | null = null
 
     const setup = async () => {
-      // Получаем текущего пользователя
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      currentUserId = user.id
 
       // Загружаем уведомления
       const { data, error } = await supabase
@@ -44,19 +45,17 @@ export default function NotificationsClient() {
       }
       setLoading(false)
 
-      // Realtime подписка с фильтром по user_id
+      // Realtime без фильтра — фильтруем на клиенте
       const channel = supabase
-        .channel('notifications-' + user.id)
+        .channel('notifications-changes')
         .on(
           'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`,
-          },
+          { event: 'INSERT', schema: 'public', table: 'notifications' },
           async (payload) => {
-            console.log('🔔 Realtime событие:', payload)
+            console.log('🔔 Realtime событие:', payload.new)
+            // Фильтруем на клиенте — только свои уведомления
+            if (payload.new.user_id !== currentUserId) return
+
             const { data: notif } = await supabase
               .from('notifications')
               .select('*, actor:users!notifications_actor_id_fkey(*), post:posts!post_id(id, image_url)')
