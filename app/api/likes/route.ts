@@ -18,6 +18,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // Get actor avatar
+  const { data: actor } = await supabase
+    .from('users')
+    .select('avatar_url, username')
+    .eq('id', user.id)
+    .single()
+
   // Get post owner for notification
   const { data: post } = await supabase
     .from('posts')
@@ -25,22 +32,24 @@ export async function POST(request: NextRequest) {
     .eq('id', postId)
     .single()
 
- if (post && post.user_id !== user.id) {
+  if (post && post.user_id !== user.id) {
     await supabase.from('notifications').insert({
       user_id: post.user_id,
       actor_id: user.id,
       type: 'like',
       post_id: postId,
     })
+
     await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/push/send`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', cookie: request.headers.get('cookie') || '' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         targetUserId: post.user_id,
         title: '❤️ Новый лайк',
-        body: 'Кто-то оценил вашу публикацию',
+        body: `${actor?.username || 'Кто-то'} оценил(а) вашу публикацию`,
         url: '/notifications',
-        type: 'like'
+        type: 'like',
+        icon: actor?.avatar_url || '/icons/icon-192x192.png',
       }),
     })
   }
