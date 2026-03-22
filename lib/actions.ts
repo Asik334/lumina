@@ -339,3 +339,19 @@ export async function deleteComment(commentId: string) {
   return { success: true }
 }
 
+
+// =============================================
+// PUSH УВЕДОМЛЕНИЯ
+// =============================================
+
+async function sendPush(targetUserId: string, title: string, body: string, url: string, type: string) {
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/push/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetUserId, title, body, url, type }),
+    })
+  } catch {
+    // Push не критичен — не прерываем основной flow
+  }
+}

@@ -1,4 +1,5 @@
-﻿import { createClient } from '@/lib/supabase/server'
+﻿import PushToggle from '@/components/ui/PushToggle'
+import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { formatTimeAgo } from '@/lib/utils'
@@ -38,6 +39,10 @@ export default async function NotificationsPage() {
         <Bell className="w-6 h-6" />
         <h1 className="text-2xl font-bold">Уведомления</h1>
       </div>
+
+<div className="px-4 mb-4 sm:px-0">
+  <PushToggle />
+</div>
 
       {error ? (
         <div className="text-center py-20">
