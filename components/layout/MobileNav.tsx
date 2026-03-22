@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Search, Compass, Bell, PlusSquare } from 'lucide-react'
+import { Home, Search, Compass, MessageCircle, Plus } from 'lucide-react'
 import type { User as UserType } from '@/types'
 import { useState } from 'react'
 import CreatePostModal from '@/components/posts/CreatePostModal'
@@ -17,10 +17,10 @@ export default function MobileNav({ user }: MobileNavProps) {
   const [showCreatePost, setShowCreatePost] = useState(false)
 
   const navItems = [
-    { href: '/feed',          icon: Home,    label: 'Главная' },
-    { href: '/search',        icon: Search,  label: 'Поиск' },
-    { href: '/explore',       icon: Compass, label: 'Обзор' },
-    { href: '/notifications', icon: Bell,    label: 'Уведомления' },
+    { href: '/feed',     icon: Home,          label: 'Главная' },
+    { href: '/search',   icon: Search,        label: 'Поиск' },
+    { href: '/messages', icon: MessageCircle, label: 'Чат' },
+    { href: '/explore',  icon: Compass,       label: 'Обзор' },
   ]
 
   return (
@@ -28,23 +28,25 @@ export default function MobileNav({ user }: MobileNavProps) {
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-40"
         style={{
-          background: 'rgba(8,8,16,0.95)',
+          background: 'rgba(8,8,16,0.97)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
           borderTop: '1px solid rgba(255,255,255,0.07)',
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        <div className="flex items-center justify-around px-2 pt-2 pb-1">
+        <div className="flex items-center justify-around px-2 pt-2 pb-2">
           {/* Главная, Поиск */}
           {navItems.slice(0, 2).map(({ href, icon: Icon, label }) => {
             const active = pathname === href
             return (
               <Link key={href} href={href} aria-label={label}
-                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all active:scale-90">
-                <Icon className={`w-6 h-6 transition-all ${active ? 'text-white' : 'text-white/35'}`}
-                  style={active ? { filter: 'drop-shadow(0 0 8px rgba(168,85,247,0.7))' } : {}} />
-                <span className={`text-[10px] ${active ? 'text-white' : 'text-white/30'}`}>{label}</span>
+                className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all active:scale-90">
+                <Icon
+                  className={`w-6 h-6 transition-all ${active ? 'text-white' : 'text-white/35'}`}
+                  style={active ? { filter: 'drop-shadow(0 0 8px rgba(168,85,247,0.8))' } : {}}
+                />
+                <span className={`text-[10px] font-medium ${active ? 'text-purple-400' : 'text-white/30'}`}>{label}</span>
               </Link>
             )
           })}
@@ -56,22 +58,24 @@ export default function MobileNav({ user }: MobileNavProps) {
             className="flex items-center justify-center rounded-2xl shadow-lg transition-all active:scale-90"
             style={{
               background: 'linear-gradient(135deg, #a855f7, #ec4899)',
-              width: 52, height: 52,
-              boxShadow: '0 4px 20px rgba(168,85,247,0.4)',
+              width: 50, height: 50,
+              boxShadow: '0 4px 20px rgba(168,85,247,0.5)',
             }}
           >
-            <PlusSquare className="w-6 h-6 text-white" />
+            <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
           </button>
 
-          {/* Обзор, Уведомления */}
+          {/* Чат, Обзор */}
           {navItems.slice(2, 4).map(({ href, icon: Icon, label }) => {
             const active = pathname === href || pathname.startsWith(href)
             return (
               <Link key={href} href={href} aria-label={label}
-                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all active:scale-90">
-                <Icon className={`w-6 h-6 transition-all ${active ? 'text-white' : 'text-white/35'}`}
-                  style={active ? { filter: 'drop-shadow(0 0 8px rgba(168,85,247,0.7))' } : {}} />
-                <span className={`text-[10px] ${active ? 'text-white' : 'text-white/30'}`}>{label}</span>
+                className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all active:scale-90">
+                <Icon
+                  className={`w-6 h-6 transition-all ${active ? 'text-white' : 'text-white/35'}`}
+                  style={active ? { filter: 'drop-shadow(0 0 8px rgba(168,85,247,0.8))' } : {}}
+                />
+                <span className={`text-[10px] font-medium ${active ? 'text-purple-400' : 'text-white/30'}`}>{label}</span>
               </Link>
             )
           })}
@@ -79,11 +83,17 @@ export default function MobileNav({ user }: MobileNavProps) {
           {/* Профиль */}
           {user ? (
             <Link href={`/profile/${user.username}`} aria-label="Профиль"
-              className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all active:scale-90">
-              <div className={`rounded-full transition-all ${pathname.startsWith('/profile') ? 'ring-2 ring-purple-500 ring-offset-1 ring-offset-black' : 'opacity-40'}`}>
+              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all active:scale-90">
+              <div className={`rounded-full transition-all ${
+                pathname.startsWith('/profile')
+                  ? 'ring-2 ring-purple-500 ring-offset-1 ring-offset-black'
+                  : 'opacity-40'
+              }`}>
                 <UserAvatar user={user} size="sm" />
               </div>
-              <span className={`text-[10px] ${pathname.startsWith('/profile') ? 'text-white' : 'text-white/30'}`}>Профиль</span>
+              <span className={`text-[10px] font-medium ${pathname.startsWith('/profile') ? 'text-purple-400' : 'text-white/30'}`}>
+                Профиль
+              </span>
             </Link>
           ) : null}
         </div>
