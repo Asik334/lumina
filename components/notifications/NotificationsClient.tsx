@@ -12,30 +12,32 @@ export default function NotificationsClient() {
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
-
-  const fetchNotifications = async () => {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*, actor:users!notifications_actor_id_fkey(*), post:posts!post_id(id, image_url)')
-      .order('created_at', { ascending: false })
-      .limit(50)
-
-    if (error) {
-      setError(error.message)
-    } else {
-      setNotifications(data || [])
-      if (data && data.length > 0) {
-        await supabase
-          .from('notifications')
-          .update({ is_read: true })
-          .eq('is_read', false)
-      }
-    }
-    setLoading(false)
-  }
+  const [realtimeStatus, setRealtimeStatus] = useState<string>('connecting...')
 
   useEffect(() => {
+    const supabase = createClient()
+
+    const fetchNotifications = async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*, actor:users!notifications_actor_id_fkey(*), post:posts!post_id(id, image_url)')
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (error) {
+        setError(error.message)
+      } else {
+        setNotifications(data || [])
+        if (data && data.length > 0) {
+          await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('is_read', false)
+        }
+      }
+      setLoading(false)
+    }
+
     fetchNotifications()
 
     const channel = supabase
@@ -44,6 +46,7 @@ export default function NotificationsClient() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications' },
         async (payload) => {
+          console.log('🔔 Realtime событие:', payload)
           const { data } = await supabase
             .from('notifications')
             .select('*, actor:users!notifications_actor_id_fkey(*), post:posts!post_id(id, image_url)')
@@ -52,14 +55,14 @@ export default function NotificationsClient() {
 
           if (data) {
             setNotifications((prev) => [data, ...prev])
-            await supabase
-              .from('notifications')
-              .update({ is_read: true })
-              .eq('id', data.id)
+            await supabase.from('notifications').update({ is_read: true }).eq('id', data.id)
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('📡 Realtime статус:', status)
+        setRealtimeStatus(status)
+      })
 
     return () => {
       supabase.removeChannel(channel)
@@ -82,6 +85,9 @@ export default function NotificationsClient() {
       <div className="flex items-center gap-3 mb-6">
         <Bell className="w-6 h-6" />
         <h1 className="text-2xl font-bold">Уведомления</h1>
+        <span className={`text-xs px-2 py-1 rounded-full ml-auto ${realtimeStatus === 'SUBSCRIBED' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+          {realtimeStatus}
+        </span>
       </div>
 
       <div className="px-4 mb-4 sm:px-0">
