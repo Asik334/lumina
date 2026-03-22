@@ -91,10 +91,10 @@ export default async function FeedPage() {
     .limit(5)
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 py-6">
+    <div className="max-w-screen-xl mx-auto px-0 sm:px-4 py-0 sm:py-6">
       <div className="flex gap-8">
         {/* Feed */}
-        <div className="flex-1 max-w-xl mx-auto xl:mx-0">
+        <div className="flex-1 max-w-xl mx-auto xl:mx-0 w-full">
           {storyGroupsArray.length > 0 && (
             <StoriesBar storyGroups={storyGroupsArray} currentUserId={user!.id} />
           )}

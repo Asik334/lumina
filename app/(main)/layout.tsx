@@ -27,7 +27,7 @@ export default async function MainLayout({
       <Sidebar user={profile} isAdmin={profile?.is_admin} />
 
       {/* Main Content */}
-      <main className="flex-1 ml-0 md:ml-64 xl:ml-72 pb-24 md:pb-0 min-h-screen overflow-x-hidden">
+      <main className="flex-1 ml-0 md:ml-64 xl:ml-72 min-h-screen overflow-x-hidden mobile-content">
         {children}
       </main>
 

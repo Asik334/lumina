@@ -90,7 +90,7 @@ export default function PostCard({ post, currentUserId, onLikeUpdate }: PostCard
 
   return (
     <>
-      <article className="glass rounded-2xl overflow-hidden">
+      <article className="glass sm:rounded-2xl overflow-hidden sm:mb-2">
         {/* Header */}
         <div className="flex items-center justify-between p-4">
           <Link

@@ -32,48 +32,77 @@
 @layer base {
   * {
     @apply border-border;
+    /* Убираем задержку tap на мобильных */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
+
+  html {
+    /* Запрещаем выделение текста при tap */
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'DM Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Предотвращаем горизонтальный скролл */
+    overflow-x: hidden;
+    /* Поддержка safe area (notch, home indicator) */
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
-  ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+  /* Скроллбар */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+  /* Улучшение читаемости на мобильных */
+  p, span, div { -webkit-font-smoothing: antialiased; }
+
+  /* Минимальный размер tap target */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  ::-webkit-scrollbar-track {
-    background: transparent;
+  /* Исключения для маленьких inline-элементов */
+  button.inline-btn, a.inline-btn {
+    min-height: unset;
+    min-width: unset;
+    display: inline;
   }
 
-  ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-  }
+  /* Плавный скролл */
+  html { scroll-behavior: smooth; }
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+  /* Фокус для доступности */
+  :focus-visible {
+    outline: 2px solid rgba(168, 85, 247, 0.6);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255,255,255,0.03);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255,255,255,0.08);
   }
 
   .glass-hover {
     @apply glass transition-all duration-300;
   }
-
   .glass-hover:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.15);
   }
 
   .neon-text {
@@ -96,32 +125,79 @@
   }
 
   .story-ring-seen {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255,255,255,0.1);
     padding: 2px;
     border-radius: 50%;
   }
 
-  .font-mono {
-    font-family: 'Space Mono', monospace;
-  }
+  .font-mono { font-family: 'Space Mono', monospace; }
 
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
 
   .bg-mesh {
-    background-image: 
-      radial-gradient(at 40% 20%, hsla(28, 100%, 74%, 0.05) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, hsla(189, 100%, 56%, 0.05) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, hsla(355, 100%, 93%, 0.03) 0px, transparent 50%),
-      radial-gradient(at 80% 50%, hsla(340, 100%, 76%, 0.05) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, hsla(22, 100%, 77%, 0.03) 0px, transparent 50%),
-      radial-gradient(at 80% 100%, hsla(242, 100%, 70%, 0.05) 0px, transparent 50%),
-      radial-gradient(at 0% 0%, hsla(343, 100%, 76%, 0.05) 0px, transparent 50%);
+    background-image:
+      radial-gradient(at 40% 20%, hsla(28,100%,74%,0.05) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsla(189,100%,56%,0.05) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsla(355,100%,93%,0.03) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, hsla(340,100%,76%,0.05) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(22,100%,77%,0.03) 0px, transparent 50%),
+      radial-gradient(at 80% 100%, hsla(242,100%,70%,0.05) 0px, transparent 50%),
+      radial-gradient(at 0% 0%, hsla(343,100%,76%,0.05) 0px, transparent 50%);
+  }
+
+  /* Safe area утилиты */
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+  .pl-safe { padding-left: env(safe-area-inset-left); }
+  .pr-safe { padding-right: env(safe-area-inset-right); }
+
+  /* Активное состояние для мобильных */
+  .tap-highlight:active { opacity: 0.7; transform: scale(0.97); }
+
+  /* Полноэкранный контейнер с учётом нижней панели навигации */
+  .mobile-content {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  @media (min-width: 768px) {
+    .mobile-content { padding-bottom: 0; }
   }
 }
+
+/* Мобильные модальные окна — полноэкранные */
+@media (max-width: 640px) {
+  .modal-mobile {
+    position: fixed !important;
+    inset: 0 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Модалки снизу (bottom sheet) */
+  .bottom-sheet {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+}
+
+/* Анимация появления bottom sheet */
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.slide-up { animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
+
+/* Запрет зума при двойном tap на iOS */
+* { touch-action: pan-x pan-y; }
+input, select, textarea { font-size: 16px !important; }
