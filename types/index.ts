@@ -78,3 +78,22 @@ export interface Highlight {
   cover_url: string | null
   created_at: string
 }
+export interface Message {
+  id: string
+  conversation_id: string
+  sender_id: string
+  receiver_id: string
+  content: string
+  is_read: boolean
+  created_at: string
+  sender?: User
+}
+
+export interface Conversation {
+  id: string
+  participant_1: string
+  participant_2: string
+  created_at: string
+  other_user?: User
+  last_message?: Message
+}
