@@ -30,7 +30,7 @@ export default function ProfileHeader({
   const [followersCount, setFollowersCount] = useState(profile.followers_count)
   const [followLoading, setFollowLoading] = useState(false)
   const [messageLoading, setMessageLoading] = useState(false)
-  const [showModal, setShowModal] = useState<'followers' | 'following' | null>(null)
+  const [showModal, setShowModal] = useState<'подписчики' | 'подписки' | null>(null)
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved'>('posts')
 
   const handleFollow = async () => {
@@ -218,7 +218,7 @@ export default function ProfileHeader({
             </div>
             <div className="w-px bg-white/10" />
             <button
-              onClick={() => setShowModal('followers')}
+              onClick={() => setShowModal('подписчики')}
               className="flex-1 flex flex-col items-center gap-0.5 hover:opacity-70 transition-opacity"
             >
               <span className="text-lg font-bold">{formatCount(followersCount)}</span>
@@ -226,7 +226,7 @@ export default function ProfileHeader({
             </button>
             <div className="w-px bg-white/10" />
             <button
-              onClick={() => setShowModal('following')}
+              onClick={() => setShowModal('подписки')}
               className="flex-1 flex flex-col items-center gap-0.5 hover:opacity-70 transition-opacity"
             >
               <span className="text-lg font-bold">{formatCount(profile.following_count)}</span>
@@ -262,7 +262,7 @@ export default function ProfileHeader({
         <FollowersModal
           userId={profile.id}
           type={showModal}
-          count={showModal === 'followers' ? followersCount : profile.following_count}
+          count={showModal === 'подписчики' ? followersCount : profile.following_count}
           onClose={() => setShowModal(null)}
         />
       )}
