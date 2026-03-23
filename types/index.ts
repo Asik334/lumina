@@ -7,9 +7,16 @@ export interface User {
   website: string | null
   is_private: boolean
   is_verified: boolean
+  is_admin?: boolean
+  is_banned?: boolean
   posts_count: number
   followers_count: number
   following_count: number
+  is_online?: boolean
+  last_seen?: string | null
+  profile_song?: string | null
+  profile_song_title?: string | null
+  profile_song_artist?: string | null
   created_at: string
   updated_at: string
 }
@@ -22,6 +29,7 @@ export interface Post {
   location: string | null
   likes_count: number
   comments_count: number
+  hashtags?: string[]
   created_at: string
   updated_at: string
   user?: User
@@ -44,48 +52,10 @@ export interface Comment {
   id: string
   user_id: string
   post_id: string
+  content: string
   parent_id: string | null
-  content: string
-  likes_count: number
   created_at: string
-  updated_at: string
   user?: User
-}
-
-export interface Like {
-  id: string
-  user_id: string
-  post_id: string
-  created_at: string
-}
-
-export interface Follower {
-  id: string
-  follower_id: string
-  following_id: string
-  status: 'pending' | 'accepted'
-  created_at: string
-}
-
-export interface Message {
-  id: string
-  conversation_id: string
-  sender_id: string
-  receiver_id: string
-  content: string
-  is_read: boolean
-  created_at: string
-  sender?: User
-}
-
-export interface Conversation {
-  id: string
-  participant_1: string
-  participant_2: string
-  last_message: string | null
-  last_message_at: string | null
-  created_at: string
-  other_user?: User
 }
 
 export interface Notification {
@@ -101,8 +71,10 @@ export interface Notification {
   post?: Post
 }
 
-export interface StoryGroup {
-  user: User
-  stories: Story[]
-  hasUnviewed: boolean
+export interface Highlight {
+  id: string
+  user_id: string
+  title: string
+  cover_url: string | null
+  created_at: string
 }
