@@ -34,7 +34,7 @@ export default function FollowersModal({
 
     if (type === 'подписчики') {
       const { data: rows } = await supabase
-        .from('подписчики')
+        .from('followers')
         .select('follower:users!followers_follower_id_fkey(*)')
         .eq('following_id', userId)
         .limit(50)
@@ -42,7 +42,7 @@ export default function FollowersModal({
       data = rows?.map((r: any) => r.follower).filter(Boolean) || []
     } else {
       const { data: rows } = await supabase
-        .from('подписчики')
+        .from('followers')
         .select('following:users!followers_following_id_fkey(*)')
         .eq('follower_id', userId)
         .limit(50)
@@ -106,13 +106,9 @@ export default function FollowersModal({
                   >
                     <UserAvatar user={user} size="md" />
                     <div>
-                      <p className="font-semibold text-sm">
-                        {user.username}
-                      </p>
+                      <p className="font-semibold text-sm">{user.username}</p>
                       {user.full_name && (
-                        <p className="text-xs text-muted-foreground">
-                          {user.full_name}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{user.full_name}</p>
                       )}
                     </div>
                   </Link>
