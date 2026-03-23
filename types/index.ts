@@ -97,3 +97,9 @@ export interface Conversation {
   other_user?: User
   last_message?: Message
 }
+
+export interface StoryGroup {
+  user: User
+  stories: Story[]
+  hasUnviewed: boolean
+}
