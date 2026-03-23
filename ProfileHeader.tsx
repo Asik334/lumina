@@ -1,12 +1,11 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Settings, Grid, Film, Bookmark, Link as LinkIcon, Loader2, MessageCircle } from 'lucide-react'
+import { Settings, Grid, Film, Bookmark, Link as LinkIcon, Loader2, MessageCircle, BadgeCheck } from 'lucide-react'
 import type { User } from '@/types'
 import { formatCount } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
 import UserAvatar from '@/components/ui/UserAvatar'
 import Link from 'next/link'
 import FollowersModal from '@/components/profile/FollowersModal'
@@ -31,36 +30,35 @@ export default function ProfileHeader({
   const [followersCount, setFollowersCount] = useState(profile.followers_count)
   const [followLoading, setFollowLoading] = useState(false)
   const [messageLoading, setMessageLoading] = useState(false)
-  const [showModal, setShowModal] = useState<'подписчики' | 'подписки' | null>(null)
+  const [showModal, setShowModal] = useState<'followers' | 'following' | null>(null)
+  const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved'>('posts')
 
   const handleFollow = async () => {
     if (followLoading) return
     setFollowLoading(true)
-    const supabase = createClient()
 
     if (following) {
-      await supabase.from('подписчики')
-        .delete()
-        .eq('follower_id', currentUserId)
-        .eq('following_id', profile.id)
+      await fetch(`/api/followers?followingId=${profile.id}`, { method: 'DELETE' })
       setFollowing(false)
       setFollowersCount(c => c - 1)
     } else {
-      await supabase.from('подписчики')
-        .insert({ follower_id: currentUserId, following_id: profile.id })
+      await fetch('/api/followers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ followingId: profile.id }),
+      })
       setFollowing(true)
       setFollowersCount(c => c + 1)
     }
     setFollowLoading(false)
   }
 
-  // РљРЅРѕРїРєР° "РќР°РїРёСЃР°С‚СЊ" вЂ” СЃРѕР·РґР°С‘С‚ РёР»Рё РѕС‚РєСЂС‹РІР°РµС‚ Р±РµСЃРµРґСѓ Рё РїРµСЂРµС…РѕРґРёС‚ РІ С‡Р°С‚
   const handleMessage = async () => {
     if (messageLoading) return
     setMessageLoading(true)
+    const { createClient } = await import('@/lib/supabase/client')
     const supabase = createClient()
 
-    // РџСЂРѕРІРµСЂСЏРµРј РµСЃС‚СЊ Р»Рё СѓР¶Рµ Р±РµСЃРµРґР°
     const { data: existing } = await supabase
       .from('conversations')
       .select('id')
@@ -71,7 +69,6 @@ export default function ProfileHeader({
       .maybeSingle()
 
     if (!existing) {
-      // РЎРѕР·РґР°С‘Рј РЅРѕРІСѓСЋ Р±РµСЃРµРґСѓ
       await supabase
         .from('conversations')
         .insert({ participant_1: currentUserId, participant_2: profile.id })
@@ -81,39 +78,65 @@ export default function ProfileHeader({
     router.push('/messages')
   }
 
+  const tabs = [
+    { key: 'posts', icon: Grid, label: 'POSTS' },
+    { key: 'reels', icon: Film, label: 'REELS' },
+    ...(isOwnProfile ? [{ key: 'saved', icon: Bookmark, label: 'SAVED' }] : []),
+  ]
+
   return (
     <>
-      <div className="mb-8">
-        <div className="flex gap-8 md:gap-16 items-start mb-6">
-          {/* Avatar */}
-          <div className="flex-shrink-0">
-            <UserAvatar user={profile} size="xl" />
-          </div>
+      <div className="w-full">
+        {/* ── Cover / gradient banner ── */}
+        <div
+          className="w-full h-28 md:h-36 relative"
+          style={{
+            background: 'linear-gradient(135deg, #1a0533 0%, #0d0d1a 40%, #1a0533 100%)',
+          }}
+        >
+          {/* subtle neon glow */}
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              background: 'radial-gradient(ellipse at 30% 50%, rgba(168,85,247,0.4) 0%, transparent 60%), radial-gradient(ellipse at 70% 50%, rgba(236,72,153,0.3) 0%, transparent 60%)',
+            }}
+          />
+        </div>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-4 flex-wrap">
-              <h1 className="text-xl font-semibold">{profile.username}</h1>
-              {profile.is_verified && (
-                <svg className="w-5 h-5 text-neon-blue flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              )}
+        {/* ── Avatar + buttons row ── */}
+        <div className="px-4 relative">
+          {/* Avatar — overlaps the banner */}
+          <div className="flex items-end justify-between" style={{ marginTop: -44 }}>
+            <div
+              className="rounded-full p-[3px] flex-shrink-0"
+              style={{
+                background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                boxShadow: '0 0 20px rgba(168,85,247,0.5)',
+              }}
+            >
+              <div className="rounded-full p-[2px] bg-[#0a0a0f]">
+                <UserAvatar user={profile} size="xl" />
+              </div>
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-2 mb-4 flex-wrap">
+            <div className="flex gap-2 mb-1">
               {isOwnProfile ? (
                 <>
                   <Link
                     href="/profile/edit"
-                    className="px-4 py-1.5 text-sm font-semibold glass rounded-lg hover:bg-white/10 transition-colors border border-white/10"
+                    className="px-4 py-1.5 text-sm font-semibold rounded-xl border border-white/15 hover:bg-white/10 transition-all"
+                    style={{ background: 'rgba(255,255,255,0.05)' }}
                   >
-                    Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РїСЂРѕС„РёР»СЊ
+                    Edit profile
                   </Link>
-                  <button className="p-1.5 glass rounded-lg hover:bg-white/10 transition-colors border border-white/10">
+                  <Link
+                    href="/profile/edit"
+                    className="p-2 rounded-xl border border-white/15 hover:bg-white/10 transition-all"
+                    style={{ background: 'rgba(255,255,255,0.05)' }}
+                  >
                     <Settings className="w-4 h-4" />
-                  </button>
+                  </Link>
                 </>
               ) : (
                 <>
@@ -121,89 +144,113 @@ export default function ProfileHeader({
                     whileTap={{ scale: 0.95 }}
                     onClick={handleFollow}
                     disabled={followLoading}
-                    className={`px-6 py-1.5 text-sm font-semibold rounded-lg transition-all flex items-center gap-2 ${
+                    className={`px-5 py-1.5 text-sm font-semibold rounded-xl transition-all flex items-center gap-2 ${
                       following
-                        ? 'glass border border-white/10 hover:bg-white/10'
-                        : 'bg-neon-gradient hover:opacity-90'
+                        ? 'border border-white/15 hover:bg-white/10'
+                        : 'text-white hover:opacity-90'
                     }`}
+                    style={following ? { background: 'rgba(255,255,255,0.05)' } : {
+                      background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                      boxShadow: '0 4px 15px rgba(168,85,247,0.4)',
+                    }}
                   >
                     {followLoading && <Loader2 className="w-3 h-3 animate-spin" />}
-                    {following ? 'РџРѕРґРїРёСЃР°РЅ' : 'РџРѕРґРїРёСЃР°С‚СЊСЃСЏ'}
+                    {following ? 'Подписан' : 'Подписаться'}
                   </motion.button>
 
-                  {/* РљРЅРѕРїРєР° РќР°РїРёСЃР°С‚СЊ вЂ” РѕС‚РєСЂС‹РІР°РµС‚ С‡Р°С‚ */}
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={handleMessage}
                     disabled={messageLoading}
-                    className="px-4 py-1.5 text-sm font-semibold glass rounded-lg hover:bg-white/10 transition-colors border border-white/10 flex items-center gap-2 disabled:opacity-50"
+                    className="px-4 py-1.5 text-sm font-semibold rounded-xl border border-white/15 hover:bg-white/10 transition-all flex items-center gap-2"
+                    style={{ background: 'rgba(255,255,255,0.05)' }}
                   >
                     {messageLoading
                       ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       : <MessageCircle className="w-3.5 h-3.5" />
                     }
-                    РќР°РїРёСЃР°С‚СЊ
+                    Написать
                   </motion.button>
                 </>
               )}
             </div>
+          </div>
 
-            {/* Stats */}
-            <div className="flex gap-6 mb-4">
-              <div className="cursor-default">
-                <span className="font-bold text-sm">{formatCount(postsCount)}</span>
-                <span className="text-muted-foreground text-sm ml-1">РїСѓР±Р»РёРєР°С†РёР№</span>
-              </div>
-              <button
-                onClick={() => setShowModal('подписчики')}
-                className="hover:opacity-70 transition-opacity"
-              >
-                <span className="font-bold text-sm">{formatCount(followersCount)}</span>
-                <span className="text-muted-foreground text-sm ml-1">РїРѕРґРїРёСЃС‡РёРєРѕРІ</span>
-              </button>
-              <button
-                onClick={() => setShowModal('подписки')}
-                className="hover:opacity-70 transition-opacity"
-              >
-                <span className="font-bold text-sm">{formatCount(profile.following_count)}</span>
-                <span className="text-muted-foreground text-sm ml-1">РїРѕРґРїРёСЃРѕРє</span>
-              </button>
-            </div>
-
-            {/* Bio */}
-            <div className="space-y-1">
-              {profile.full_name && (
-                <p className="font-semibold text-sm">{profile.full_name}</p>
-              )}
-              {profile.bio && (
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{profile.bio}</p>
-              )}
-              {profile.website && (
-                <a
-                  href={profile.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-neon-blue flex items-center gap-1 hover:opacity-80 transition-opacity"
-                >
-                  <LinkIcon className="w-3 h-3" />
-                  {profile.website.replace(/^https?:\/\//, '')}
-                </a>
+          {/* ── Name + bio ── */}
+          <div className="mt-3 mb-4">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <h1 className="text-lg font-bold leading-tight">{profile.username}</h1>
+              {profile.is_verified && (
+                <BadgeCheck className="w-5 h-5 text-purple-400 flex-shrink-0" />
               )}
             </div>
+            {profile.full_name && (
+              <p className="text-sm text-white/60 mb-1">{profile.full_name}</p>
+            )}
+            {profile.bio && (
+              <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed">{profile.bio}</p>
+            )}
+            {profile.website && (
+              <a
+                href={profile.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm flex items-center gap-1 mt-1 hover:opacity-80 transition-opacity"
+                style={{ color: '#a855f7' }}
+              >
+                <LinkIcon className="w-3 h-3" />
+                {profile.website.replace(/^https?:\/\//, '')}
+              </a>
+            )}
+          </div>
+
+          {/* ── Stats row ── */}
+          <div
+            className="flex rounded-2xl mb-4 py-3"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
+            <div className="flex-1 flex flex-col items-center gap-0.5">
+              <span className="text-lg font-bold">{formatCount(postsCount)}</span>
+              <span className="text-xs text-white/50">публикаций</span>
+            </div>
+            <div className="w-px bg-white/10" />
+            <button
+              onClick={() => setShowModal('followers')}
+              className="flex-1 flex flex-col items-center gap-0.5 hover:opacity-70 transition-opacity"
+            >
+              <span className="text-lg font-bold">{formatCount(followersCount)}</span>
+              <span className="text-xs text-white/50">подписчиков</span>
+            </button>
+            <div className="w-px bg-white/10" />
+            <button
+              onClick={() => setShowModal('following')}
+              className="flex-1 flex flex-col items-center gap-0.5 hover:opacity-70 transition-opacity"
+            >
+              <span className="text-lg font-bold">{formatCount(profile.following_count)}</span>
+              <span className="text-xs text-white/50">подписок</span>
+            </button>
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* ── Tabs ── */}
         <div className="flex border-t border-white/10">
-          {[
-            { icon: Grid, label: 'РџСѓР±Р»РёРєР°С†РёРё' },
-            { icon: Film, label: 'Р’РёРґРµРѕ' },
-            ...(isOwnProfile ? [{ icon: Bookmark, label: 'РЎРѕС…СЂР°РЅС‘РЅРЅС‹Рµ' }] : []),
-          ].map(({ icon: Icon, label }) => (
+          {tabs.map(({ key, icon: Icon, label }) => (
             <button
-              key={label}
-              className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-semibold tracking-wider uppercase text-muted-foreground hover:text-foreground transition-colors border-t-2 border-transparent hover:border-foreground/30"
+              key={key}
+              onClick={() => setActiveTab(key as any)}
+              className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-semibold tracking-wider transition-all relative"
+              style={{ color: activeTab === key ? '#fff' : 'rgba(255,255,255,0.35)' }}
             >
+              {activeTab === key && (
+                <motion.div
+                  layoutId="tab-indicator"
+                  className="absolute top-0 left-0 right-0 h-0.5"
+                  style={{ background: 'linear-gradient(90deg, #a855f7, #ec4899)' }}
+                />
+              )}
               <Icon className="w-4 h-4" />
               <span className="hidden sm:block">{label}</span>
             </button>
@@ -211,16 +258,14 @@ export default function ProfileHeader({
         </div>
       </div>
 
-      {/* Followers / Following modal */}
       {showModal && (
         <FollowersModal
           userId={profile.id}
           type={showModal}
-          count={showModal === 'подписчики' ? followersCount : profile.following_count}
+          count={showModal === 'followers' ? followersCount : profile.following_count}
           onClose={() => setShowModal(null)}
         />
       )}
     </>
   )
 }
-
