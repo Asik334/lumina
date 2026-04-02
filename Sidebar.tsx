@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Home, Search, Compass, Film, MessageCircle,
-  Heart, PlusSquare, LogOut
+  Heart, PlusSquare, LogOut, ShieldCheck
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { User as UserType } from '@/types'
@@ -94,6 +94,25 @@ export default function Sidebar({ user }: SidebarProps) {
             </Link>
           )}
         </nav>
+
+        {/* Admin Panel */}
+        {user?.is_admin && (
+          <Link
+            href="/admin"
+            className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${
+              pathname === '/admin' ? 'bg-white/10 text-foreground' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+            }`}
+          >
+            <ShieldCheck className={`w-5 h-5 transition-transform group-hover:scale-110 ${pathname === '/admin' ? 'text-neon-purple' : ''}`} />
+            <span className="font-medium">Админ панель</span>
+            {pathname === '/admin' && (
+              <motion.div
+                layoutId="activeIndicator"
+                className="ml-auto w-1.5 h-1.5 rounded-full bg-neon-purple"
+              />
+            )}
+          </Link>
+        )}
 
         {/* Logout */}
         <button
